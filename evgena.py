@@ -24,7 +24,7 @@ def dummy(argv):
     parser = argparse.ArgumentParser(
         prog='evgena.py dummy',
         description='nothing interesting here',
-        epilog='nothing interesting here either'
+        epilog='nothing interesting there either ...go away...'
     )
 
     if len(argv) == 0:
@@ -41,18 +41,18 @@ if __name__ == '__main__':
           |\__/|                          |\__/|
          (_ ^-^)                         (_ ^-^)
           )   (                           )   (  
-         /     \  )        ---->         /     \ (   
-        (       )(                      (       ) )
-         \__/__/\_)                      \__\__/_/
+         /     \  )        ---->         /     \   
+        (       )(                      (       )
+         \__/__/\_)                      \__\__/
          
-           cat                            panda
+           cat                             owl
            
        well, its a bit exaggerated, only small images
           of alphanumeric characters are supported'''
 
     epilog = '''
 For detailed info about each action, call:
-    ./evgena.sh <action> [-h | --help]
+    ./evgena.sh ACTION [-h | --help]
     '''
 
     main_parser = argparse.ArgumentParser(
