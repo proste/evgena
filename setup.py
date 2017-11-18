@@ -20,7 +20,7 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence'
     ],
     keywords='42',  # TODO enhance
-    packages=find_packages(),
+    packages=find_packages(),  #TODO check playground not installed
     install_requires=[
         'deap>=1.0.0',
         'scikit-learn>=0.19.0',
