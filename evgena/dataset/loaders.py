@@ -7,6 +7,7 @@ _X_train_name = 'train-images-idx3-ubyte'
 _y_train_name = 'train-labels-idx1-ubyte'
 _X_test_name = 'test-images-idx3-ubyte'
 _y_test_name = 'test-labels-idx1-ubyte'
+_mapping_name = 'mapping.txt'
 
 
 def _load_idx_to_ndarray(path):
@@ -43,27 +44,41 @@ def _load_idx_to_ndarray(path):
         return array.astype('<i4')
 
 
+def _load_mapping_to_dict(path):
+    with open(path, 'r') as file:
+        return {
+            int(key): chr(int(val))
+            for key, val in (
+                str.split(line.rstrip('\n\r'), ' ')
+                for line in file.readlines()
+            )
+        }
+
+
 def load_idx_mnist(dir_path):
     X_train = _load_idx_to_ndarray(os.path.join(dir_path, _X_train_name))
     y_train = _load_idx_to_ndarray(os.path.join(dir_path, _y_train_name))
     X_test = _load_idx_to_ndarray(os.path.join(dir_path, _X_test_name))
     y_test = _load_idx_to_ndarray(os.path.join(dir_path, _y_test_name))
+    mapping = _load_mapping_to_dict(os.path.join(dir_path, _mapping_name))
 
     # TODO possibly add size checks (assert/exception)
 
     return (
         (X_train, y_train),
-        (X_test, y_test)
+        (X_test, y_test),
+        mapping
     )
 
 
 def load_idx_emnist(dir_path):
-    ((X_train, y_train), (X_test, y_test)) = load_idx_mnist(dir_path)
+    ((X_train, y_train), (X_test, y_test), mapping) = load_idx_mnist(dir_path)
 
     X_train = np.swapaxes(X_train, 1, 2)
     X_test = np.swapaxes(X_test, 1, 2)
 
     return (
         (X_train, y_train),
-        (X_test, y_test)
+        (X_test, y_test),
+        mapping
     )
