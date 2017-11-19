@@ -24,7 +24,9 @@ setup(
     install_requires=[
         'deap>=1.0.0',
         'scikit-learn>=0.19.0',
-        'keras>=2.0.0'
+        'keras>=2.0.0',
+        'IPython', 'ipywidgets',
+        'matplotlib'
         # TODO add if needed
     ],
     python_requires='>=3'
