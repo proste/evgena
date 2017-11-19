@@ -41,14 +41,14 @@ def _load_idx_to_ndarray(path):
         # load data, reshape, change endianess
         array = np.fromfile(file, dtype)
         array = np.reshape(array, shape)
-        return array.astype('<i4')
+        return array.byteswap(True).newbyteorder()  # TODO check if IDX data always big endian
 
 
 def _load_mapping_to_dict(path):
     with open(path, 'r') as file:
         return {
-            int(key): chr(int(val))
-            for key, val in (
+            int(key): [chr(int(val)) for val in vals]
+            for key, *vals in (
                 str.split(line.rstrip('\n\r'), ' ')
                 for line in file.readlines()
             )
