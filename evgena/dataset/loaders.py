@@ -55,7 +55,7 @@ def _load_mapping_to_dict(path):
         }
 
 
-def load_idx_mnist(dir_path):
+def _load_idx_mnist(dir_path):
     X_train = _load_idx_to_ndarray(os.path.join(dir_path, _X_train_name))
     y_train = _load_idx_to_ndarray(os.path.join(dir_path, _y_train_name))
     X_test = _load_idx_to_ndarray(os.path.join(dir_path, _X_test_name))
@@ -72,7 +72,7 @@ def load_idx_mnist(dir_path):
 
 
 def load_idx_emnist(dir_path):
-    ((X_train, y_train), (X_test, y_test), mapping) = load_idx_mnist(dir_path)
+    ((X_train, y_train), (X_test, y_test), mapping) = _load_idx_mnist(dir_path)
 
     X_train = np.swapaxes(X_train, 1, 2)
     X_test = np.swapaxes(X_test, 1, 2)

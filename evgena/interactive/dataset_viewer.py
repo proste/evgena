@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import os
 import matplotlib.pyplot as plt
-from evgena.dataset.loaders import load_idx_mnist, load_idx_emnist
+from evgena.dataset.loaders import _load_idx_mnist, load_idx_emnist
 
 
 # TODO enlarge example slider
@@ -24,20 +24,21 @@ class DatasetViewer:
 
         dataset_picker_wi = widgets.ToggleButtons(
             options=OrderedDict([
-                ('balanced', lambda: load_idx_emnist(os.path.normpath('../evgena/dataset/emnist_balanced'))),
-                ('letters', lambda: load_idx_emnist(os.path.normpath('../evgena/dataset/emnist_letters'))),
-                ('digits', lambda: load_idx_emnist(os.path.normpath('../evgena/dataset/emnist_digits'))),
-                ('mnist (emnist)', lambda: load_idx_emnist(os.path.normpath('../evgena/dataset/emnist_mnist'))),
-                ('mnist (original)', lambda: load_idx_mnist(os.path.normpath('../evgena/dataset/mnist')))]),
+                ('balanced', lambda: load_idx_emnist(os.path.normpath('../datasets/emnist_balanced'))),
+                ('letters', lambda: load_idx_emnist(os.path.normpath('../datasets/emnist_letters'))),
+                ('digits', lambda: load_idx_emnist(os.path.normpath('../datasets/emnist_digits'))),
+                # ('mnist (emnist)', lambda: load_idx_emnist(os.path.normpath('../evgena/dataset/emnist_mnist'))),
+                # ('mnist (original)', lambda: _load_idx_mnist(os.path.normpath('../evgena/dataset/mnist')))
+            ]),
             description='Dataset:',
             disabled=False,
             button_style='',
             tooltips=[
-                'Loads original MNIST dataset',
-                'Loads EMNIST mnist dataset',
                 'Loads EMNIST balanced dataset',
                 'Loads EMNIST letters dataset',
                 'Loads EMNIST digits dataset',
+                # 'Loads EMNIST mnist dataset',
+                # 'Loads original MNIST dataset',
             ]
         )
 
