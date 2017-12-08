@@ -1,5 +1,7 @@
 import contextlib
 
+__all__ = ['maybe_open']
+
 
 @contextlib.contextmanager
 def maybe_open(path_or_fp, *args, **kwargs):
