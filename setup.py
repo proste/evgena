@@ -26,9 +26,11 @@ setup(
         'scikit-learn>=0.19.0',
         'keras>=2.0.0',
         'IPython', 'ipywidgets',
-        'matplotlib'
+        'matplotlib',
+        'tensorflow',
+        'h5py'
         # TODO add if needed
     ],
     python_requires='>=3'
-    # TODO consider adding packae_data or data_files
+    # TODO consider adding package_data or data_files
 )
