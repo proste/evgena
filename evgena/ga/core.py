@@ -1,17 +1,22 @@
 class OperatorGraphBuilder:
+    @property
+    def init_op(self):
+        return self._init_op
+
     def __init__(self):
         self._operators = []
+        self._init_op = Operator(None, -1)
 
-    def add_operator(self, operation, *input_ids, **op_config):
+    def add_operator(self, operation, *input_ops, **op_config):
         if self._operators is None:
             raise ValueError(
                 'Operator addition forbidden on builded (finalized) instance of {!r}'.format(self.__class__.__name__)
             )
 
-        op_id = len(self._operators) + 1
-        self._operators.append(Operator(operation, op_id, *input_ids, **op_config))
+        new_op = Operator(operation, len(self._operators), *input_ops, **op_config)
+        self._operators.append(new_op)
 
-        return op_id
+        return new_op
 
     def build(self):
         result = self._operators
@@ -39,15 +44,7 @@ class Population:
         self._evaluate_fitness()
         return self._fitness
 
-    @property
-    def objective_fnc(self):
-        return self._objective_fnc
-
-    @property
-    def fitness_fnc(self):
-        return self._fitness_fnc
-
-    def __init__(self, individuals, objective_fnc, fitness_fnc):
+    def __init__(self, individuals, ga):
         # define individuals and make them read only
         if individuals.flags['OWNDATA']:
             self._individuals = individuals
@@ -56,9 +53,8 @@ class Population:
 
         self._individuals.flags['WRITEABLE'] = False
 
-        # initialize fitness and objective functions
-        self._objective_fnc = objective_fnc
-        self._fitness_fnc = fitness_fnc
+        # define ga to which this pop belong
+        self._ga = ga
 
         # initialize objective and fitness value tables
         self._objective = None
@@ -66,14 +62,15 @@ class Population:
 
     def _evaluate_objective(self):
         if self._objective is None:
-            self._objective = self._objective_fnc(self._individuals)
+            self._objective = self._ga.objective_fnc(self._individuals)
             self._objective.flags['WRITEABLE'] = False
 
-    def _evaluate_fitness(self): # TODO maybe add index for even lazier fitness evaluation and objective value evaluation
+    def _evaluate_fitness(self):
+        # TODO maybe add index for even lazier fitness evaluation and objective value evaluation
         if self._fitness is None:
             self._evaluate_objective()
 
-            self._fitness = self._fitness_fnc(self._individuals, self._objective)
+            self._fitness = self._ga.fitness_fnc(self._individuals, self._objective)
             self._fitness.flags['WRITEABLE'] = False
 
     def __deepcopy__(self):
@@ -82,29 +79,55 @@ class Population:
 
 class Operator:
     @property
-    def output_id(self):
-        return self._output_id
+    def op_id(self):
+        return self._op_id
 
-    def __init__(self, operation, output_id, *input_ids, **op_config):
-        for in_id in input_ids:
-            if in_id < output_id:
+    def __init__(self, operation, op_id, *input_ops, **op_config):
+        self._input_ids = (input_op.op_id for input_op in input_ops)
+
+        for input_id in self._input_ids:
+            if input_id >= op_id:
                 raise ValueError(
-                    'Input with id {0!r} will be undefined during processing of operation {1!r}'.format(in_id, output_id)
+                    'Input with id {0!r} will be undefined during processing of operation {1!r}'.format(input_id, op_id)
                 )
 
-        self._output_id = output_id
-        self._input_ids = input_ids
+        self._op_id = op_id
         self._operation = operation
         self._op_config = op_config
 
     def configure(self, **kwargs):
         self._op_config.update(**kwargs)
 
-    def __call__(self, captures):
-        return self._operation(*(captures[input_id] for input_id in self._input_ids), **self._op_config)
+    def __call__(self, ga):
+        return self._operation(*(ga.capture(input_id) for input_id in self._input_ids), **self._op_config)
 
 
+# TODO add individual as some type - ie.
 class GeneticAlgorithm:
+    @property
+    def objective_fnc(self):
+        return self._objective_fnc
+
+    @property
+    def fitness_fnc(self):
+        return self._fitness_fnc
+
+    def operator(self, operator_id):
+        return self._operators[operator_id]
+
+    def capture(self, operator_id):
+        if not self._is_running:
+            raise RuntimeError('GA is not running, cannot provide captures')
+
+        return self._captures[operator_id]
+
+    @property
+    def current_generation(self):
+        if not self._is_running:
+            raise RuntimeError('GA is not running, cannot provide current_generation')
+
+        return self._curr_generation
+
     def __init__(
             self, initialization, objective_fnc, fitness_fnc, operators,
             early_stopping=None, callbacks=None, population_size=128, generation_cap=1024
@@ -120,30 +143,38 @@ class GeneticAlgorithm:
 
         self._callbacks = callbacks
 
+        self._is_running = False
+        self._captures = None
+        self._curr_generation = None
+
     def run(self, *args, **kwargs):
         # init capture list
-        captures = [None] * (1 + len(self._operators))
+        self._is_running = True
+        self._captures = [None] * len(self._operators)
 
         # run initialization with optional params
-        init_individuals = self._initialization(*args, **kwargs)
-        captures[0] = [Population(init_individuals, self._fitness_fnc, self._objective_fnc)]
+        init_individuals = self._initialization(self.population_size, *args, **kwargs)
+        self._captures[-1] = [Population(init_individuals, self)]
 
         # loop over generations
-        for generation_i in range(self.generation_cap):
+        for self._curr_generation in range(self.generation_cap):
             # handle early stopping
-            if (self._early_stopping is not None) and self._early_stopping(captures[0]):
+            if (self._early_stopping is not None) and self._early_stopping(self):
                 break
 
             # loop over each operator
             for op in self._operators:
-                captures[op.output_id] = op(captures)
+                self._captures[op.output_id] = op(self)
 
             for callback in self._callbacks:
-                callback(generation_i, captures)
+                callback(self)
 
-            # last output as input of next iteration, clear other outputs
-            captures[0] = captures[-1]
-            for capture_i in range(1, len(captures)):
-                captures[capture_i] = None
+            # clear all captures but last
+            self._captures[:-1] = [None] * (len(self._captures) - 1)
 
-        return captures[0]
+        # clean up
+        self._is_running = False
+        result = self._captures[-1]
+        self._captures = None
+
+        return result
