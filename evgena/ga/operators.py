@@ -1,28 +1,28 @@
-from .tags import BitStrings, AnyIndividuals, AnyFitnesses, AnyObjectives, SimpleFloatFitnesses
 from .core import Population, GeneticAlgorithm, OperatorBase
 from typing import Tuple
 
 import numpy as np
 
 
-# TODO in core add unions with any_types
-class RouletteWheelSelection(OperatorBase[Tuple[AnyIndividuals, AnyObjectives, SimpleFloatFitnesses]]):
-    def __init__(self, unfiltered_op: super):
+class RouletteWheelSelection(OperatorBase):
+    def __init__(self, unfiltered_op: OperatorBase):
         super(RouletteWheelSelection, self).__init__(unfiltered_op)
 
-    def _operation(self, ga, *input_populations):
-        unfiltered = input_populations[0].individuals
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population):
+        unfiltered = input_populations[0]
 
-        # choice = np.random.choice(np.arange(len(unfiltered)), p=unfiltered.)
+        choice = np.random.choice(np.arange(unfiltered.size), size=unfiltered.size, p=unfiltered.fitnesses)
+
+        return Population(unfiltered[choice], ga)
 
 
-class OnePointXover(OperatorBase[Tuple[BitStrings, AnyObjectives, AnyFitnesses]]):
-    def __init__(self, xover_prob: float, parents_op: super):
+class OnePointXover(OperatorBase):
+    def __init__(self, xover_prob: float, parents_op: OperatorBase):
         super(OnePointXover, self).__init__(parents_op)
 
         self.xover_prob = xover_prob
 
-    def _operation(self, ga, *input_populations):
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population):
         parents = input_populations[0].individuals
         offspring = parents.copy()
 
@@ -35,14 +35,14 @@ class OnePointXover(OperatorBase[Tuple[BitStrings, AnyObjectives, AnyFitnesses]]
         return Population(offspring, ga)
 
 
-class DomainMutation(OperatorBase[Tuple[BitStrings, AnyObjectives, AnyFitnesses]]):
-    def __init__(self, mut_prob: float, gene_mut_prob: float, original_op: super):
+class DomainMutation(OperatorBase):
+    def __init__(self, mut_prob: float, gene_mut_prob: float, original_op: OperatorBase):
         super(DomainMutation, self).__init__(original_op)
 
         self._mut_prob = mut_prob
         self._gene_mut_prob = gene_mut_prob
 
-    def _operation(self, ga, *input_populations):
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population):
         originals = input_populations[0].individuals
         mutated = originals.copy()
 

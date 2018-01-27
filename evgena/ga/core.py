@@ -1,37 +1,30 @@
-from typing import TypeVar, Callable, Generic, List, Optional, Tuple
 from abc import abstractmethod
-
-IndividualsTag = TypeVar('IndividualsTag')
-ObjectivesTag = TypeVar('ObjectivesTag')
-FitnessesTag = TypeVar('FitnessesTag')
-
-TaskTags = Tuple[IndividualsTag, ObjectivesTag, FitnessesTag]
-
-Operator = TypeVar('Operator')
+from numpy import ndarray
+from typing import List, Callable
 
 
-class Population(Generic[TaskTags]):
+class Population:
     @property
     def size(self) -> int:
         return len(self._individuals)
 
     @property
-    def individuals(self) -> IndividualsTag:
+    def individuals(self) -> ndarray:
         return self._individuals
 
     @property
-    def objectives(self) -> ObjectivesTag:
+    def objectives(self) -> ndarray:
         self._evaluate_objective()
         return self._objective
 
     @property
-    def fitnesses(self) -> FitnessesTag:
+    def fitnesses(self) -> ndarray:
         self._evaluate_fitness()
         return self._fitness
 
     def __init__(
-            self, individuals: IndividualsTag,
-            ga: GeneticAlgorithm[TaskTags]
+            self, individuals: ndarray,
+            ga: GeneticAlgorithm
     ):
         # define individuals and make them read only
         if individuals.flags['OWNDATA']:
@@ -65,21 +58,18 @@ class Population(Generic[TaskTags]):
         NotImplemented
 
 
-class OperatorBase(Generic[TaskTags]):
+class OperatorBase:
     @property
-    def op_id(self) -> Optional[int]:
+    def op_id(self) -> int:
         return self._op_id
 
-    def __init__(
-            self, *input_ops: 'OperatorBase[TaskTags]',
-            graph_builder: OperatorGraphBuilder[TaskTags] = None
-    ):
+    def __init__(self, *input_ops: 'OperatorBase', graph_builder: OperatorGraphBuilder = None):
         if len(input_ops) == 0:  # dummy operation
             self._graph_builder = graph_builder
             self._op_id = -1
             self._input_ids = None
         else:
-            self._graph_builder = input_ops[0]._graph_builder
+            self._graph_builder = graph_builder if (graph_builder is not None) else input_ops[0]._graph_builder
 
             for input_op in input_ops:
                 if self._graph_builder is not input_op._graph_builder:
@@ -96,21 +86,16 @@ class OperatorBase(Generic[TaskTags]):
                     )
 
     @abstractmethod
-    def _operation(
-            self, ga: GeneticAlgorithm[TaskTags],
-            *input_populations: Population[TaskTags]
-    ) -> Population[TaskTags]:
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population) -> Population:
         raise NotImplementedError('Call of not implemented abstract method.')
 
-    def __call__(
-            self, ga: GeneticAlgorithm[IndividualsTag, ObjectivesTag, FitnessesTag]
-    ) -> Population[IndividualsTag, ObjectivesTag, FitnessesTag]:
+    def __call__(self, ga: GeneticAlgorithm) -> Population:
         return self._operation(ga, *(ga.capture(input_id) for input_id in self._input_ids))
 
 
-class OperatorGraphBuilder(Generic[Operator]):
+class OperatorGraphBuilder:
     @property
-    def init_op(self) -> OperatorBase[IndividualsTag, ObjectivesTag, FitnessesTag]:
+    def init_op(self) -> OperatorBase:
         return self._init_op
 
     def __init__(self):
@@ -118,7 +103,7 @@ class OperatorGraphBuilder(Generic[Operator]):
         self._operators = []
         self._init_op = OperatorBase(graph_builder=self)
 
-    def add_operator(self, operator: Operator) -> int:
+    def add_operator(self, operator: OperatorBase) -> int:
         if self._is_built:
             raise ValueError(
                 'Operator addition forbidden on built (finalized) instance of {!r}'.format(self.__class__.__name__)
@@ -129,7 +114,7 @@ class OperatorGraphBuilder(Generic[Operator]):
 
         return new_op_id
 
-    def build_graph(self) -> List[Operator[IndividualsTag, ObjectivesTag, FitnessesTag]]:
+    def build_graph(self) -> List[OperatorBase]:
         self._is_built = True
 
         return self._operators
@@ -138,19 +123,19 @@ class OperatorGraphBuilder(Generic[Operator]):
 # TODO add individual as some type - ie.
 # TODO configuration load dump mechanism
 # TODO some basic set of operators and tests
-class GeneticAlgorithm(Generic[IndividualsTag, ObjectivesTag, FitnessesTag]):
+class GeneticAlgorithm:
     @property
-    def objective_fnc(self) -> Callable[[IndividualsTag], ObjectivesTag]:
+    def objective_fnc(self) -> Callable[[ndarray], ndarray]:
         return self._objective_fnc
 
     @property
-    def fitness_fnc(self) -> Callable[[IndividualsTag, ObjectivesTag], FitnessesTag]:
+    def fitness_fnc(self) -> Callable[[ndarray, ndarray], ndarray]:
         return self._fitness_fnc
 
-    def operator(self, operator_id: int) -> OperatorBase[IndividualsTag, ObjectivesTag, FitnessesTag]:
+    def operator(self, operator_id: int) -> OperatorBase:
         return self._operators[operator_id]
 
-    def capture(self, operator_id: int) -> Population[IndividualsTag, ObjectivesTag, FitnessesTag]:
+    def capture(self, operator_id: int) -> Population:
         if not self._is_running:
             raise RuntimeError('GA is not running, cannot provide captures')
 
@@ -164,12 +149,10 @@ class GeneticAlgorithm(Generic[IndividualsTag, ObjectivesTag, FitnessesTag]):
         return self._curr_generation
 
     def __init__(
-            self, initialization: Callable[[int, ...], IndividualsTag],
-            operators: List[Operator[IndividualsTag, ObjectivesTag, FitnessesTag]],
-            objective_fnc: Callable[[IndividualsTag], ObjectivesTag],
-            fitness_fnc: Callable[[IndividualsTag, ObjectivesTag], FitnessesTag] = None,
-            early_stopping: Callable[['GeneticAlgorithm[IndividualsTag, ObjectivesTag, FitnessesTag]'], bool] = None,
-            callbacks: List[Callable[['GeneticAlgorithm[IndividualsTag, ObjectivesTag, FitnessesTag]'], None]] = None,
+            self, initialization: Callable[[int, ...], ndarray], operators: List[OperatorBase],
+            objective_fnc: Callable[[ndarray], ndarray], fitness_fnc: Callable[[ndarray, ndarray], ndarray] = None,
+            early_stopping: Callable[['GeneticAlgorithm'], bool] = None,
+            callbacks: List[Callable[['GeneticAlgorithm'], None]] = None,
             population_size: int = 128, generation_cap: int = 1024
     ):
         self.population_size = population_size
@@ -187,7 +170,7 @@ class GeneticAlgorithm(Generic[IndividualsTag, ObjectivesTag, FitnessesTag]):
         self._captures = None
         self._curr_generation = None
 
-    def run(self, *args, **kwargs) -> Population[IndividualsTag, ObjectivesTag, FitnessesTag]:
+    def run(self, *args, **kwargs) -> Population:
         # init capture list
         self._is_running = True
         self._captures = [None] * len(self._operators)
