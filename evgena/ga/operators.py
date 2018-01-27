@@ -1,18 +1,29 @@
-from .individuals import Strings
+from .tags import BitStrings, AnyIndividuals, AnyFitnesses, AnyObjectives, SimpleFloatFitnesses
 from .core import Population, GeneticAlgorithm, OperatorBase
-from typing import Generic
+from typing import Tuple
 
 import numpy as np
 
 
-class OnePointXover(OperatorBase[Strings, None, None]):
-    def __init__(self, parents_in):
-        super(OnePointXover, self).__init__(parents_in)
+# TODO in core add unions with any_types
+class RouletteWheelSelection(OperatorBase[Tuple[AnyIndividuals, AnyObjectives, SimpleFloatFitnesses]]):
+    def __init__(self, unfiltered_op: super):
+        super(RouletteWheelSelection, self).__init__(unfiltered_op)
 
-    def _operation(
-            self, ga, *input_populations
-    ):
-        parents = parents_pop.individuals
+    def _operation(self, ga, *input_populations):
+        unfiltered = input_populations[0].individuals
+
+        # choice = np.random.choice(np.arange(len(unfiltered)), p=unfiltered.)
+
+
+class OnePointXover(OperatorBase[Tuple[BitStrings, AnyObjectives, AnyFitnesses]]):
+    def __init__(self, xover_prob: float, parents_op: super):
+        super(OnePointXover, self).__init__(parents_op)
+
+        self.xover_prob = xover_prob
+
+    def _operation(self, ga, *input_populations):
+        parents = input_populations[0].individuals
         offspring = parents.copy()
 
         for p_i in range(0, len(parents), 2):
@@ -21,24 +32,27 @@ class OnePointXover(OperatorBase[Strings, None, None]):
             offspring[p_i, edge:, ...] = parents[p_i + 1, edge:, ...]
             offspring[p_i + 1, edge:, ...] = parents[p_i, edge:, ...]
 
-        return Population(offspring, )
-
-# TODO maybe override [] in population to [] in individuals (maybe not - shape and dtype would not make sense)
-# TODO maybe operator as a class (with overridable call)
-def one_point_xover(
-        ga: GeneticAlgorithm[Strings, None, None],
-        parents_pop: Population[Strings, None, None]
-) -> Population[Strings, None, None]:
-    # TODO vectorize
-    # TODO check calling convention
+        return Population(offspring, ga)
 
 
-def domain_mutation(
-        ga: GeneticAlgorithm[Strings, None, None],
-        parents_pop: Population[Strings, None, None]
-) -> Population[Strings, None, None]:
-    parents = parents_pop.individuals
-    offspring = parents.copy()
+class DomainMutation(OperatorBase[Tuple[BitStrings, AnyObjectives, AnyFitnesses]]):
+    def __init__(self, mut_prob: float, gene_mut_prob: float, original_op: super):
+        super(DomainMutation, self).__init__(original_op)
 
-    for p_i in range(len(parents)):
-        if ()
+        self._mut_prob = mut_prob
+        self._gene_mut_prob = gene_mut_prob
+
+    def _operation(self, ga, *input_populations):
+        originals = input_populations[0].individuals
+        mutated = originals.copy()
+
+        # TODO try to vectorize - maybe some bit mask?
+        for p_i in range(len(originals)):
+            if np.random.random() < self._mut_prob:
+                mask = np.random.choice(
+                    a=[False, True], size=originals.shape[1:], p=[1-self._gene_mut_prob, self._gene_mut_prob]
+                )
+
+                mutated[p_i, mask, ...] = np.invert(originals[p_i, mask, ...])
+
+        return Population(mutated, ga)
