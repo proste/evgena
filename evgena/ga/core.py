@@ -1,6 +1,7 @@
-from abc import abstractmethod
-from numpy import ndarray
-from typing import List, Callable
+from abc import ABC, abstractmethod
+from typing import List, Callable, Any
+
+import numpy as np
 
 
 class Population:
@@ -9,22 +10,22 @@ class Population:
         return len(self._individuals)
 
     @property
-    def individuals(self) -> ndarray:
+    def individuals(self) -> np.ndarray:
         return self._individuals
 
     @property
-    def objectives(self) -> ndarray:
+    def objectives(self) -> np.ndarray:
         self._evaluate_objective()
         return self._objective
 
     @property
-    def fitnesses(self) -> ndarray:
+    def fitnesses(self) -> np.ndarray:
         self._evaluate_fitness()
         return self._fitness
 
     def __init__(
-            self, individuals: ndarray,
-            ga: GeneticAlgorithm
+            self, individuals: np.ndarray,
+            ga: 'GeneticAlgorithm'
     ):
         # define individuals and make them read only
         if individuals.flags['OWNDATA']:
@@ -63,7 +64,7 @@ class OperatorBase:
     def op_id(self) -> int:
         return self._op_id
 
-    def __init__(self, *input_ops: 'OperatorBase', graph_builder: OperatorGraphBuilder = None):
+    def __init__(self, *input_ops: 'OperatorBase', graph_builder: 'OperatorGraphBuilder' = None):
         if len(input_ops) == 0:  # dummy operation
             self._graph_builder = graph_builder
             self._op_id = -1
@@ -76,7 +77,7 @@ class OperatorBase:
                     raise ValueError('Operations do not belong to one graph')
 
             self._op_id = self._graph_builder.add_operator(self)
-            self._input_ids = (input_op.op_id for input_op in input_ops)
+            self._input_ids = [input_op.op_id for input_op in input_ops]
 
             for input_id in self._input_ids:
                 if input_id >= self._op_id:
@@ -86,10 +87,10 @@ class OperatorBase:
                     )
 
     @abstractmethod
-    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population) -> Population:
-        raise NotImplementedError('Call of not implemented abstract method.')
+    def _operation(self, ga: 'GeneticAlgorithm', *input_populations: Population) -> Population:
+        raise NotImplementedError
 
-    def __call__(self, ga: GeneticAlgorithm) -> Population:
+    def __call__(self, ga: 'GeneticAlgorithm') -> Population:
         return self._operation(ga, *(ga.capture(input_id) for input_id in self._input_ids))
 
 
@@ -120,16 +121,46 @@ class OperatorGraphBuilder:
         return self._operators
 
 
+class InitializerBase(ABC):
+    @abstractmethod
+    def __call__(self, population_size: int, *args, **kwargs) -> np.ndarray:
+        raise NotImplementedError
+
+
+class ObjectiveFncBase(ABC):
+    @abstractmethod
+    def __call__(self, individuals: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
+
+
+class FitnessFncBase(ABC):
+    @abstractmethod
+    def __call__(self, individuals: np.ndarray, objectives: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
+
+
+class EarlyStoppingBase(ABC):
+    @abstractmethod
+    def __call__(self, ga: 'GeneticAlgorithm') -> bool:
+        raise NotImplementedError
+
+
+class CallbackBase(ABC):
+    @abstractmethod
+    def __call__(self, ga: 'GeneticAlgorithm') -> None:
+        raise NotImplementedError
+
+
 # TODO add individual as some type - ie.
 # TODO configuration load dump mechanism
 # TODO some basic set of operators and tests
 class GeneticAlgorithm:
     @property
-    def objective_fnc(self) -> Callable[[ndarray], ndarray]:
+    def objective_fnc(self) -> Callable[[np.ndarray], np.ndarray]:
         return self._objective_fnc
 
     @property
-    def fitness_fnc(self) -> Callable[[ndarray, ndarray], ndarray]:
+    def fitness_fnc(self) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
         return self._fitness_fnc
 
     def operator(self, operator_id: int) -> OperatorBase:
@@ -149,11 +180,10 @@ class GeneticAlgorithm:
         return self._curr_generation
 
     def __init__(
-            self, initialization: Callable[[int, ...], ndarray], operators: List[OperatorBase],
-            objective_fnc: Callable[[ndarray], ndarray], fitness_fnc: Callable[[ndarray, ndarray], ndarray] = None,
-            early_stopping: Callable[['GeneticAlgorithm'], bool] = None,
-            callbacks: List[Callable[['GeneticAlgorithm'], None]] = None,
-            population_size: int = 128, generation_cap: int = 1024
+            self, initialization: InitializerBase, operators: List[OperatorBase],
+            objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
+            early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None,
+            population_size: int = 32, generation_cap: int = 64
     ):
         self.population_size = population_size
         self.generation_cap = generation_cap
@@ -161,10 +191,10 @@ class GeneticAlgorithm:
         self._initialization = initialization
         self._objective_fnc = objective_fnc
         self._fitness_fnc = fitness_fnc if (fitness_fnc is not None) else (lambda _, obj: obj)
-        self._early_stopping = early_stopping
+        self._early_stopping = early_stopping if (early_stopping is not None) else (lambda _: False)
         self._operators = operators
 
-        self._callbacks = callbacks
+        self._callbacks = callbacks if (callbacks is not None) else []
 
         self._is_running = False
         self._captures = None
@@ -177,19 +207,19 @@ class GeneticAlgorithm:
 
         # run initialization with optional params
         init_individuals = self._initialization(self.population_size, *args, **kwargs)
-        self._captures[-1] = [Population(init_individuals, self)]
+        self._captures[-1] = Population(init_individuals, self)
 
         # loop over generations
         for self._curr_generation in range(self.generation_cap):
             # handle early stopping
-            if (self._early_stopping is not None) and self._early_stopping(self):
+            if self._early_stopping(self):
                 break
 
             # loop over each operator
             for op in self._operators:
                 self._captures[op.op_id] = op(self)
 
-            for callback in (self._callbacks if (self._callbacks is not None) else []):
+            for callback in self._callbacks:
                 callback(self)
 
             # clear all captures but last

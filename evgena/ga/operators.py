@@ -13,7 +13,7 @@ class RouletteWheelSelection(OperatorBase):
 
         choice = np.random.choice(np.arange(unfiltered.size), size=unfiltered.size, p=unfiltered.fitnesses)
 
-        return Population(unfiltered[choice], ga)
+        return Population(unfiltered.individuals[choice, ...], ga)
 
 
 class OnePointXover(OperatorBase):
@@ -35,9 +35,9 @@ class OnePointXover(OperatorBase):
         return Population(offspring, ga)
 
 
-class DomainMutation(OperatorBase):
+class FlipMutation(OperatorBase):
     def __init__(self, mut_prob: float, gene_mut_prob: float, original_op: OperatorBase):
-        super(DomainMutation, self).__init__(original_op)
+        super(FlipMutation, self).__init__(original_op)
 
         self._mut_prob = mut_prob
         self._gene_mut_prob = gene_mut_prob
@@ -56,3 +56,26 @@ class DomainMutation(OperatorBase):
                 mutated[p_i, mask, ...] = np.invert(originals[p_i, mask, ...])
 
         return Population(mutated, ga)
+
+
+class Elitism(OperatorBase):
+    def __init__(self, elite_proportion: float, original_op: OperatorBase, evolved_op: OperatorBase):
+        super(Elitism, self).__init__(original_op, evolved_op)
+
+        self._elite_proportion = elite_proportion
+
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population) -> Population:
+        elite_size = int(ga.population_size * self._elite_proportion)
+        original = input_populations[0]
+        evolved = input_populations[1]
+        result = np.empty_like(original.individuals)
+
+        # assign all but elite_size with random evolved individuals
+        result[elite_size:] = evolved.individuals[
+            np.random.choice(np.arange(evolved.size), evolved.size - elite_size, replace=False)
+        ]
+
+        # assign elite_size individuals with best of original individuals
+        result[:elite_size] = original.individuals[original.fitnesses.argsort()[-elite_size:]]
+
+        return Population(result, ga)
