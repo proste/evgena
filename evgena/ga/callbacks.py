@@ -1,10 +1,10 @@
 import numpy as np
 
-from .core import CallbackBase, GeneticAlgorithm
+from .core import GeneticAlgorithm, CallbackBase
 
 
 class BestReport(CallbackBase):
-    def __call__(self, ga: 'GeneticAlgorithm') -> None:
+    def __call__(self, ga: GeneticAlgorithm) -> None:
         offspring = ga.capture(-1)
 
         print('{gen_i:3d}: {ind}'.format(

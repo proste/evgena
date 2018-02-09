@@ -5,7 +5,7 @@
 
 ### Guidelines
 - learn to use logging (and try to actually use it)
-- opt for argparse or click
+- argparse
 - setuptools for easy distribution (https://packaging.python.org/)
 
 ### The real stuff
@@ -13,12 +13,32 @@
 - create mating operators
     - one point (horizontal/vertical) crossover
     - two point (rectangular area) crossover
+    - some blending crossover (ie kind of gaussian circle blend) - analogy of weighted arithmetic crossover 
 - try to work with masked individuals - masked numpy arrays/sth different
-- look for datasets MNIST, restrict just to those? find alphanumeric dataset
 - simple grid search based SVM trainer/the best possible models trained on the internet
 - how to measure likeness? according to norm? part of loss/fitness, GAN
 - add easter eggs
 
+### GA
+- change ordering of params in operations, so that sub ops first
+
+### Utils
+- keras callback plotting acc and loss
+- progress bar
+
 ### First to do
-- train SVM on mnist
-- reproduce pyGAA functions
+
+
+### Img2Evgena
+- evolution
+	- evolving sequence of distortions of image
+	- evolving noise to add
+
+- trying to find whether noise or sequence correlates with source -> dest class pair
+
+- needs of evolution
+	- working with 3D/2D image data
+	- image handling functions (imagemagick, openCV python API?)
+
+### AlfaNum2Evgena
+- models

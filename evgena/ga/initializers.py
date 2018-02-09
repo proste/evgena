@@ -5,7 +5,7 @@ from .core import InitializerBase
 
 class RandomBitStringInit(InitializerBase):
     def __init__(self, individual_size: int) -> None:
-        super().__init__()
+        super(RandomBitStringInit, self).__init__()
 
         self._individual_size = individual_size
 

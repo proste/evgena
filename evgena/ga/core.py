@@ -1,62 +1,37 @@
-from abc import ABC, abstractmethod
-from typing import List, Callable, Any
-
 import numpy as np
 
+from typing import List, Callable
+from abc import ABC, abstractmethod
 
-class Population:
-    @property
-    def size(self) -> int:
-        return len(self._individuals)
 
-    @property
-    def individuals(self) -> np.ndarray:
-        return self._individuals
+class FitnessFncBase(ABC):
+    @abstractmethod
+    def __call__(self, individuals: np.ndarray, objectives: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
 
-    @property
-    def objectives(self) -> np.ndarray:
-        self._evaluate_objective()
-        return self._objective
 
-    @property
-    def fitnesses(self) -> np.ndarray:
-        self._evaluate_fitness()
-        return self._fitness
+class ObjectiveFncBase(ABC):
+    @abstractmethod
+    def __call__(self, individuals: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
 
-    def __init__(
-            self, individuals: np.ndarray,
-            ga: 'GeneticAlgorithm'
-    ):
-        # define individuals and make them read only
-        if individuals.flags['OWNDATA']:
-            self._individuals = individuals
-        else:
-            self._individuals = individuals.copy()
 
-        self._individuals.flags['WRITEABLE'] = False
+class EarlyStoppingBase(ABC):
+    @abstractmethod
+    def __call__(self, ga: 'GeneticAlgorithm') -> bool:
+        raise NotImplementedError
 
-        # define ga to which this pop belong
-        self._ga = ga
 
-        # initialize objective and fitness value tables
-        self._objective = None
-        self._fitness = None
+class CallbackBase(ABC):
+    @abstractmethod
+    def __call__(self, ga: 'GeneticAlgorithm') -> None:
+        raise NotImplementedError
 
-    def _evaluate_objective(self) -> None:
-        if self._objective is None:
-            self._objective = self._ga.objective_fnc(self._individuals)
-            self._objective.flags['WRITEABLE'] = False
 
-    def _evaluate_fitness(self) -> None:
-        # TODO maybe add index for even lazier fitness evaluation and objective value evaluation
-        if self._fitness is None:
-            self._evaluate_objective()
-
-            self._fitness = self._ga.fitness_fnc(self._individuals, self._objective)
-            self._fitness.flags['WRITEABLE'] = False
-
-    def __deepcopy__(self):
-        NotImplemented
+class InitializerBase(ABC):
+    @abstractmethod
+    def __call__(self, population_size: int, *args, **kwargs) -> np.ndarray:
+        raise NotImplementedError
 
 
 class OperatorBase:
@@ -87,11 +62,63 @@ class OperatorBase:
                     )
 
     @abstractmethod
-    def _operation(self, ga: 'GeneticAlgorithm', *input_populations: Population) -> Population:
+    def _operation(
+            self, ga: 'GeneticAlgorithm', *input_populations: 'Population') -> 'Population':
         raise NotImplementedError
 
-    def __call__(self, ga: 'GeneticAlgorithm') -> Population:
+    def __call__(self, ga: 'GeneticAlgorithm') -> 'Population':
         return self._operation(ga, *(ga.capture(input_id) for input_id in self._input_ids))
+
+
+class Population:
+    """Immutable population of individuals (with fitnesses and objectives)"""
+
+    @property
+    def size(self) -> int:
+        return len(self._individuals)
+
+    @property
+    def individuals(self) -> np.ndarray:
+        return self._individuals
+
+    @property
+    def objectives(self) -> np.ndarray:
+        self._evaluate_objective()
+        return self._objective
+
+    @property
+    def fitnesses(self) -> np.ndarray:
+        self._evaluate_fitness()
+        return self._fitness
+
+    def __init__(self, individuals: np.ndarray, ga: 'GeneticAlgorithm'):
+        # define individuals and make them read only
+        if individuals.flags['OWNDATA']:
+            self._individuals = individuals
+        else:
+            self._individuals = individuals.copy()
+
+        self._individuals.flags['WRITEABLE'] = False
+
+        # define ga to which this pop belong
+        self._ga = ga
+
+        # initialize objective and fitness value tables
+        self._objective = None
+        self._fitness = None
+
+    def _evaluate_objective(self) -> None:
+        if self._objective is None:
+            self._objective = self._ga.objective_fnc(self._individuals)
+            self._objective.flags['WRITEABLE'] = False
+
+    def _evaluate_fitness(self) -> None:
+        # TODO maybe add index for even lazier fitness evaluation and objective value evaluation
+        if self._fitness is None:
+            self._evaluate_objective()
+
+            self._fitness = self._ga.fitness_fnc(self._individuals, self._objective)
+            self._fitness.flags['WRITEABLE'] = False
 
 
 class OperatorGraphBuilder:
@@ -119,36 +146,6 @@ class OperatorGraphBuilder:
         self._is_built = True
 
         return self._operators
-
-
-class InitializerBase(ABC):
-    @abstractmethod
-    def __call__(self, population_size: int, *args, **kwargs) -> np.ndarray:
-        raise NotImplementedError
-
-
-class ObjectiveFncBase(ABC):
-    @abstractmethod
-    def __call__(self, individuals: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-
-
-class FitnessFncBase(ABC):
-    @abstractmethod
-    def __call__(self, individuals: np.ndarray, objectives: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-
-
-class EarlyStoppingBase(ABC):
-    @abstractmethod
-    def __call__(self, ga: 'GeneticAlgorithm') -> bool:
-        raise NotImplementedError
-
-
-class CallbackBase(ABC):
-    @abstractmethod
-    def __call__(self, ga: 'GeneticAlgorithm') -> None:
-        raise NotImplementedError
 
 
 # TODO add individual as some type - ie.

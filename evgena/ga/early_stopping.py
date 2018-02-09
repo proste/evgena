@@ -1,3 +1,6 @@
 import numpy as np
 
-from .core import EarlyStoppingBase
+from .core import GeneticAlgorithm, EarlyStoppingBase
+
+
+

@@ -1,7 +1,7 @@
-from .core import Population, GeneticAlgorithm, OperatorBase
-from typing import Tuple
-
 import numpy as np
+
+from .core import Population, GeneticAlgorithm, OperatorBase
+from typing import Sequence, Union
 
 
 class RouletteWheelSelection(OperatorBase):
@@ -17,11 +17,12 @@ class RouletteWheelSelection(OperatorBase):
 
 
 class OnePointXover(OperatorBase):
-    def __init__(self, xover_prob: float, parents_op: OperatorBase):
+    def __init__(self, parents_op: OperatorBase, xover_prob: float):
         super(OnePointXover, self).__init__(parents_op)
 
         self.xover_prob = xover_prob
 
+    # TODO maybe change
     def _operation(self, ga: GeneticAlgorithm, *input_populations: Population):
         parents = input_populations[0].individuals
         offspring = parents.copy()
@@ -36,7 +37,7 @@ class OnePointXover(OperatorBase):
 
 
 class FlipMutation(OperatorBase):
-    def __init__(self, mut_prob: float, gene_mut_prob: float, original_op: OperatorBase):
+    def __init__(self, original_op: OperatorBase, mut_prob: float, gene_mut_prob: float):
         super(FlipMutation, self).__init__(original_op)
 
         self._mut_prob = mut_prob
@@ -58,8 +59,33 @@ class FlipMutation(OperatorBase):
         return Population(mutated, ga)
 
 
+class TwoPointXover(OperatorBase):
+    def __init__(self, parents_op: OperatorBase, xover_prob: float, axis: Union[int, Sequence[int]] = None):
+        super(TwoPointXover, self).__init__(parents_op)
+
+        self._xover_prob = xover_prob
+        self._axis = axis if (not isinstance(axis, int)) else (axis,)
+
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population) -> Population:
+        parents = input_populations[0].individuals
+        offspring = parents.copy()
+        individual_shape = offspring.shape[1:]
+
+        for p_i in range(0, len(parents), 2):
+            hyper_cube_bounds = [
+                slice(0, u_bound) if ((self._axis is not None) and (i not in self._axis))
+                else slice(*(np.sort(np.random.randint(0, u_bound, size=2))))
+                for i, u_bound in enumerate(individual_shape)
+            ]
+
+            offspring[[p_i] + hyper_cube_bounds] = parents[[p_i + 1] + hyper_cube_bounds]
+            offspring[[p_i + 1] + hyper_cube_bounds] = parents[[p_i] + hyper_cube_bounds]
+
+        return Population(offspring, ga)
+
+
 class Elitism(OperatorBase):
-    def __init__(self, elite_proportion: float, original_op: OperatorBase, evolved_op: OperatorBase):
+    def __init__(self, original_op: OperatorBase, evolved_op: OperatorBase, elite_proportion: float):
         super(Elitism, self).__init__(original_op, evolved_op)
 
         self._elite_proportion = elite_proportion
