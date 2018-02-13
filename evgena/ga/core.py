@@ -39,19 +39,19 @@ class OperatorBase:
     def op_id(self) -> int:
         return self._op_id
 
-    def __init__(self, *input_ops: 'OperatorBase', graph_builder: 'OperatorGraphBuilder' = None):
+    def __init__(self, *input_ops: 'OperatorBase', graph_builder: 'OperatorGraph' = None):
         if len(input_ops) == 0:  # dummy operation
             self._graph_builder = graph_builder
             self._op_id = -1
             self._input_ids = None
         else:
-            self._graph_builder = graph_builder if (graph_builder is not None) else input_ops[0]._graph_builder
+            self._graph_builder = input_ops[0]._graph_builder
 
             for input_op in input_ops:
                 if self._graph_builder is not input_op._graph_builder:
                     raise ValueError('Operations do not belong to one graph')
 
-            self._op_id = self._graph_builder.add_operator(self)
+            self._op_id = self._graph_builder._add_operator(self)
             self._input_ids = [input_op.op_id for input_op in input_ops]
 
             for input_id in self._input_ids:
@@ -113,7 +113,6 @@ class Population:
             self._objective.flags['WRITEABLE'] = False
 
     def _evaluate_fitness(self) -> None:
-        # TODO maybe add index for even lazier fitness evaluation and objective value evaluation
         if self._fitness is None:
             self._evaluate_objective()
 
@@ -121,7 +120,7 @@ class Population:
             self._fitness.flags['WRITEABLE'] = False
 
 
-class OperatorGraphBuilder:
+class OperatorGraph:
     @property
     def init_op(self) -> OperatorBase:
         return self._init_op
@@ -131,7 +130,7 @@ class OperatorGraphBuilder:
         self._operators = []
         self._init_op = OperatorBase(graph_builder=self)
 
-    def add_operator(self, operator: OperatorBase) -> int:
+    def _add_operator(self, operator: OperatorBase) -> int:
         if self._is_built:
             raise ValueError(
                 'Operator addition forbidden on built (finalized) instance of {!r}'.format(self.__class__.__name__)
@@ -142,7 +141,7 @@ class OperatorGraphBuilder:
 
         return new_op_id
 
-    def build_graph(self) -> List[OperatorBase]:
+    def _build_graph(self) -> List[OperatorBase]:
         self._is_built = True
 
         return self._operators
@@ -176,20 +175,32 @@ class GeneticAlgorithm:
 
         return self._curr_generation
 
+    @property
+    def population_size(self) -> int:
+        if not self._is_running:
+            raise RuntimeError('GA is not running, cannot provide population_size')
+
+        return self._population_size
+
+    @property
+    def generation_cap(self) -> int:
+        if not self._is_running:
+            raise RuntimeError('GA is not running, cannot provide generation_cap')
+
+        return self._generation_cap
+
     def __init__(
-            self, initialization: InitializerBase, operators: List[OperatorBase],
+            self, initialization: InitializerBase, operator_graph: OperatorGraph,
             objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
             early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None,
-            population_size: int = 32, generation_cap: int = 64
     ):
-        self.population_size = population_size
-        self.generation_cap = generation_cap
-
+        self._population_size = None
+        self._generation_cap = None
         self._initialization = initialization
         self._objective_fnc = objective_fnc
         self._fitness_fnc = fitness_fnc if (fitness_fnc is not None) else (lambda _, obj: obj)
-        self._early_stopping = early_stopping if (early_stopping is not None) else (lambda _: False)
-        self._operators = operators
+        self._early_stopping = early_stopping
+        self._operators = operator_graph._build_graph()
 
         self._callbacks = callbacks if (callbacks is not None) else []
 
@@ -197,7 +208,10 @@ class GeneticAlgorithm:
         self._captures = None
         self._curr_generation = None
 
-    def run(self, *args, **kwargs) -> Population:
+    def run(self, population_size: int = 32, generation_cap: int = 64, *args, **kwargs) -> Population:
+        self._population_size = population_size
+        self._generation_cap = generation_cap
+
         # init capture list
         self._is_running = True
         self._captures = [None] * len(self._operators)
@@ -209,7 +223,7 @@ class GeneticAlgorithm:
         # loop over generations
         for self._curr_generation in range(self.generation_cap):
             # handle early stopping
-            if self._early_stopping(self):
+            if (self._early_stopping is not None) and self._early_stopping(self):
                 break
 
             # loop over each operator
