@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import List, Callable
+from typing import List, Callable, Tuple
 from abc import ABC, abstractmethod
 
 
@@ -189,13 +189,35 @@ class GeneticAlgorithm:
 
         return self._generation_cap
 
+    @property
+    def objectives_history(self) -> np.ndarray:
+        if not self._is_running:
+            raise RuntimeError('GA is not running, cannot provide objectives_history')
+
+        return self._best_objectives[:self._curr_generation + 1]
+
+    @property
+    def fitness_history(self) -> np.ndarray:
+        if not self._is_running:
+            raise RuntimeError('GA is not running, cannot provide fitness_history')
+
+        return self._best_fitnesses[:self._curr_generation + 1]
+
     def __init__(
             self, initialization: InitializerBase, operator_graph: OperatorGraph,
             objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
-            early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None,
+            early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None
     ):
+        # GA's volatile fields (valid only when GA is running)
+        self._is_running = False
+        self._captures = None
+        self._curr_generation = None
         self._population_size = None
         self._generation_cap = None
+        self._best_fitnesses = None
+        self._best_objectives = None
+
+        # GA persistent fields
         self._initialization = initialization
         self._objective_fnc = objective_fnc
         self._fitness_fnc = fitness_fnc if (fitness_fnc is not None) else (lambda _, obj: obj)
@@ -204,21 +226,23 @@ class GeneticAlgorithm:
 
         self._callbacks = callbacks if (callbacks is not None) else []
 
-        self._is_running = False
-        self._captures = None
-        self._curr_generation = None
-
-    def run(self, population_size: int = 32, generation_cap: int = 64, *args, **kwargs) -> Population:
+    def run(
+            self, population_size: int = 32, generation_cap: int = 64, *args, **kwargs
+    ) -> Tuple[Population, np.ndarray, np.ndarray]:
+        # init volatile fields
+        self._is_running = True
+        self._captures: List[Population] = [None] * len(self._operators)
         self._population_size = population_size
         self._generation_cap = generation_cap
 
-        # init capture list
-        self._is_running = True
-        self._captures = [None] * len(self._operators)
-
         # run initialization with optional params
         init_individuals = self._initialization(self.population_size, *args, **kwargs)
-        self._captures[-1] = Population(init_individuals, self)
+        init_pop = Population(init_individuals, self)
+        self._captures[-1] = init_pop
+
+        # initialize journals
+        self._best_fitnesses = np.empty(generation_cap, np.float)
+        self._best_objectives = np.empty((generation_cap,) + init_pop.objectives.shape[1:], init_pop.objectives.dtype)
 
         # loop over generations
         for self._curr_generation in range(self.generation_cap):
@@ -230,6 +254,12 @@ class GeneticAlgorithm:
             for op in self._operators:
                 self._captures[op.op_id] = op(self)
 
+            # write to journals
+            best_i = self._captures[-1].fitnesses.argmax()
+            self._best_fitnesses[self._curr_generation] = self._captures[-1].fitnesses[best_i]
+            self._best_objectives[self._curr_generation] = self._captures[-1].objectives[best_i]
+
+            # handle callbacks
             for callback in self._callbacks:
                 callback(self)
 
@@ -238,7 +268,7 @@ class GeneticAlgorithm:
 
         # clean up
         self._is_running = False
-        result = self._captures[-1]
-        self._captures = None
+        result, fitnesses, objectives = self._captures[-1], self._best_fitnesses, self._best_objectives
+        self._captures = self._best_fitnesses = self._best_objectives = None
 
-        return result  # TODO resolve type check
+        return result, fitnesses, objectives
