@@ -16,6 +16,25 @@ class RouletteWheelSelection(OperatorBase):
         return Population(unfiltered.individuals[choice, ...], ga)
 
 
+class TournamentSelection(OperatorBase):
+    def __init__(self, unfiltered_op: OperatorBase, match_size: int):
+        super(TournamentSelection, self).__init__(unfiltered_op)
+
+        self._match_size = match_size
+
+    def _operation(self, ga: GeneticAlgorithm, *input_populations: Population):
+        unfiltered = input_populations[0]
+
+        match_board = np.empty((unfiltered.size, self._match_size), dtype=np.int)
+        for i in range(unfiltered.size):
+            match_board[i] = np.random.choice(unfiltered.size, size=self._match_size)
+
+        scores = unfiltered.fitnesses[match_board]
+        chosen = match_board[range(unfiltered.size), scores.argmax(axis=-1)]
+
+        return Population(unfiltered.individuals[chosen], ga)
+
+
 class OnePointXover(OperatorBase):
     def __init__(self, parents_op: OperatorBase, xover_prob: float):
         super(OnePointXover, self).__init__(parents_op)
@@ -55,6 +74,44 @@ class FlipMutation(OperatorBase):
                 )
 
                 mutated[p_i, mask, ...] = np.invert(originals[p_i, mask, ...])
+
+        return Population(mutated, ga)
+
+
+class BiasedMutation(OperatorBase):
+    def __init__(
+            self, original_op, individual_mut_ratio=0.1, gene_mut_ratio=0.05,
+            sigma=1, mu=0, l_bound: float = None, u_bound: float = None
+    ):
+        super(BiasedMutation, self).__init__(original_op)
+
+        self._individual_mut_ratio = individual_mut_ratio
+        self._gene_mut_ratio = gene_mut_ratio
+        self._sigma = sigma
+        self._mu = mu
+        self._l_bound = l_bound
+        self._u_bound = u_bound
+
+    def _operation(self, ga, *input_populations):
+        population = input_populations[0]
+        individuals = population.individuals
+
+        mutant_count = int(population.size * self._individual_mut_ratio)
+        individual_size = np.prod(individuals.shape[1:])
+        gene_count = int(individual_size * self._gene_mut_ratio)
+
+        mutant_index = np.random.choice(population.size, size=mutant_count, replace=False)
+
+        gene_index = np.empty(shape=(mutant_count, gene_count), dtype=np.int)
+        for row in range(mutant_count):
+            gene_index[row] = np.random.choice(individual_size, size=gene_count, replace=False)
+
+        flat_index = (gene_index + np.expand_dims(mutant_index * individual_size, -1)).ravel()
+        shift = self._sigma * np.random.standard_normal(flat_index.size) + self._mu
+
+        mutated = individuals.copy()
+        mutated.ravel()[flat_index] += shift
+        np.clip(mutated, self._l_bound, self._u_bound, out=mutated)
 
         return Population(mutated, ga)
 
