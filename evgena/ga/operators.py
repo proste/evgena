@@ -11,7 +11,10 @@ class RouletteWheelSelection(OperatorBase):
     def _operation(self, ga: GeneticAlgorithm, *input_populations: Population):
         unfiltered = input_populations[0]
 
-        choice = np.random.choice(np.arange(unfiltered.size), size=unfiltered.size, p=unfiltered.fitnesses)
+        choice = np.random.choice(
+            np.arange(unfiltered.size), size=unfiltered.size,
+            p=(unfiltered.fitnesses / unfiltered.fitness.sum)
+        )
 
         return Population(unfiltered.individuals[choice, ...], ga)
 

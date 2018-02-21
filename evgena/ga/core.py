@@ -194,14 +194,14 @@ class GeneticAlgorithm:
         if not self._is_running:
             raise RuntimeError('GA is not running, cannot provide objectives_history')
 
-        return self._best_objectives[:self._curr_generation + 1]
+        return self._objectives_history[:self._curr_generation + 1]
 
     @property
     def fitness_history(self) -> np.ndarray:
         if not self._is_running:
             raise RuntimeError('GA is not running, cannot provide fitness_history')
 
-        return self._best_fitnesses[:self._curr_generation + 1]
+        return self._fitnesses_history[:self._curr_generation + 1]
 
     def __init__(
             self, initialization: InitializerBase, operator_graph: OperatorGraph,
@@ -214,8 +214,8 @@ class GeneticAlgorithm:
         self._curr_generation = None
         self._population_size = None
         self._generation_cap = None
-        self._best_fitnesses = None
-        self._best_objectives = None
+        self._fitnesses_history = None
+        self._objectives_history = None
 
         # GA persistent fields
         self._initialization = initialization
@@ -241,8 +241,8 @@ class GeneticAlgorithm:
         self._captures[-1] = init_pop
 
         # initialize journals
-        self._best_fitnesses = np.empty(generation_cap, np.float)
-        self._best_objectives = np.empty((generation_cap,) + init_pop.objectives.shape[1:], init_pop.objectives.dtype)
+        self._fitnesses_history = np.empty((generation_cap,) + init_pop.fitnesses.shape, np.float)
+        self._objectives_history = np.empty((generation_cap,) + init_pop.objectives.shape, init_pop.objectives.dtype)
 
         # loop over generations
         for self._curr_generation in range(self.generation_cap):
@@ -255,9 +255,8 @@ class GeneticAlgorithm:
                 self._captures[op.op_id] = op(self)
 
             # write to journals
-            best_i = self._captures[-1].fitnesses.argmax()
-            self._best_fitnesses[self._curr_generation] = self._captures[-1].fitnesses[best_i]
-            self._best_objectives[self._curr_generation] = self._captures[-1].objectives[best_i]
+            self._fitnesses_history[self._curr_generation] = self._captures[-1].fitnesses
+            self._objectives_history[self._curr_generation] = self._captures[-1].objectives
 
             # handle callbacks
             for callback in self._callbacks:
@@ -268,7 +267,7 @@ class GeneticAlgorithm:
 
         # clean up
         self._is_running = False
-        result, fitnesses, objectives = self._captures[-1], self._best_fitnesses, self._best_objectives
-        self._captures = self._best_fitnesses = self._best_objectives = None
+        result, fitnesses, objectives = self._captures[-1], self._fitnesses_history, self._objectives_history
+        self._captures = self._fitnesses_history = self._objectives_history = None
 
         return result, fitnesses, objectives
