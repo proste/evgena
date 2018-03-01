@@ -204,7 +204,7 @@ class GeneticAlgorithm:
         return self._fitnesses_history[:self._curr_generation + 1]
 
     def __init__(
-            self, initialization: InitializerBase, operator_graph: OperatorGraph,
+            self, initializer: InitializerBase, operator_graph: OperatorGraph,
             objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
             early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None
     ):
@@ -218,7 +218,7 @@ class GeneticAlgorithm:
         self._objectives_history = None
 
         # GA persistent fields
-        self._initialization = initialization
+        self._initializer = initializer
         self._objective_fnc = objective_fnc
         self._fitness_fnc = fitness_fnc if (fitness_fnc is not None) else (lambda _, obj: obj)
         self._early_stopping = early_stopping
@@ -236,7 +236,7 @@ class GeneticAlgorithm:
         self._generation_cap = generation_cap
 
         # run initialization with optional params
-        init_individuals = self._initialization(self.population_size, *args, **kwargs)
+        init_individuals = self._initializer(self.population_size, *args, **kwargs)
         init_pop = Population(init_individuals, self)
         self._captures[-1] = init_pop
 
