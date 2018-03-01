@@ -2,6 +2,8 @@
 - add requirements file
 - setup file? (and how/what)
 - decide the need for tests, continuous integration
+- top-level "project" emnist, possibly imagenet or so in future (downloading dataset)
+- evgena module dataset - defining unified interface and implementing convenient functions for loading various datasets
 
 ### Guidelines
 - learn to use logging (and try to actually use it)
@@ -42,3 +44,5 @@
 
 ### AlfaNum2Evgena
 - models
+
+### Unified downloader - some try_access_file, remote file repository links, hashes etc. refil.json, create packer, unpacker checker, add to starter notebook, later in install? some kind of install?

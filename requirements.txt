@@ -7,3 +7,4 @@ ipywidgets
 matplotlib
 tensorflow
 h5py
+numpy

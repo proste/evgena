@@ -19,7 +19,7 @@ def maybe_open(path_or_fp, *args, **kwargs):
             file_to_close.close()
 
 
-def copyfileobj(fsrc, fdst, length: int =65536, callback: Callable =None):
+def copyfileobj(fsrc, fdst, length: int = 65536, callback: Callable =None):
     copied = 0
     while True:
         buf = fsrc.read(length)
