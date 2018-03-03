@@ -13,7 +13,7 @@ def load_mnist() -> Tuple[np.recarray, np.recarray, np.ndarray]:
 
 def load_emnist() -> Tuple[np.recarray, np.recarray, np.ndarray]:
     train = np.load(maybe_download('datasets/emnist_balanced_train.npy')).view(np.recarray)
-    test = np.load(maybe_download('datasets/emnist_balanced_train.npy')).view(np.recarray)
+    test = np.load(maybe_download('datasets/emnist_balanced_test.npy')).view(np.recarray)
 
     return (
         train, test,
