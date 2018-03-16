@@ -15,6 +15,17 @@ class GAStatus(CallbackBase):
         self._fig.canvas.draw()
 
 
+class MultiObjectiveReport(CallbackBase):
+    def __init__(self, ax: plt.Axes):
+        super(MultiObjectiveReport, self).__init__()
+
+        self._ax = ax
+
+    def __call__(self, ga: 'GeneticAlgorithm') -> None:
+        self._ax.lines = []
+        self._ax.plot(*ga.capture(-1).objectives.transpose(), 'r+')
+
+
 class BestReport(CallbackBase):
     def __call__(self, ga: GeneticAlgorithm) -> None:
         offspring = ga.capture(-1)
