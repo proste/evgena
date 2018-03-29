@@ -8,7 +8,7 @@ def load_mnist() -> Tuple[np.recarray, np.recarray, np.ndarray]:
     train = np.load(maybe_download('datasets/mnist_train.npy')).view(np.recarray)
     test = np.load(maybe_download('datasets/mnist_test.npy')).view(np.recarray)
 
-    return train, test, np.ndarray([str(d) for d in range(10)])
+    return train, test, np.array([str(d) for d in range(10)])
 
 
 def load_emnist() -> Tuple[np.recarray, np.recarray, np.ndarray]:
