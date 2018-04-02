@@ -24,6 +24,15 @@ def load_emnist() -> Tuple[np.recarray, np.recarray, np.ndarray]:
         )
     )
 
+def load_nprecord(file_name):
+    dataset = dict(np.load(maybe_download('datasets/' + file_name)))
+    
+    train = dataset.pop('train').view(np.recarray)
+    test = dataset.pop('test').view(np.recarray)
+    synset = dataset.pop('synset')
+    
+    return train, test, synset, dataset
+
 # use keras like
 # mapping storage?
 # description storage?

@@ -48,7 +48,7 @@ lfs = [
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/best_residual_dropout_nn_emnist_2.h5.gz'
     ), (
         'datasets/fashion_mnist.npz',
-        'f6ed33b2819f8aaa4347c79c2909b60a57804a3b2048a4561fbdb73fb5632605'
+        'f6ed33b2819f8aaa4347c79c2909b60a57804a3b2048a4561fbdb73fb5632605',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/fashion_mnist.npz.gz'
     )
 ]
