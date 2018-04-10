@@ -1,5 +1,7 @@
 import numpy as np
 
+from os import makedirs
+from datetime import datetime
 from typing import List, Callable, Tuple
 from abc import ABC, abstractmethod
 
@@ -204,9 +206,10 @@ class GeneticAlgorithm:
         return self._fitnesses_history[:self._curr_generation + 1]
 
     def __init__(
-            self, initializer: InitializerBase, operator_graph: OperatorGraph,
-            objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
-            early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None
+        self, initializer: InitializerBase, operator_graph: OperatorGraph,
+        objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
+        early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None,
+        results_dir=None
     ):
         # GA's volatile fields (valid only when GA is running)
         self._is_running = False
@@ -223,17 +226,54 @@ class GeneticAlgorithm:
         self._fitness_fnc = fitness_fnc if (fitness_fnc is not None) else (lambda _, obj: obj)
         self._early_stopping = early_stopping
         self._operators = operator_graph._build_graph()
-
         self._callbacks = callbacks if (callbacks is not None) else []
+        self._results_dir = results_dir
+        
+        if self._results_dir is not None:
+            makedirs(self._results_dir, exist_ok=True)
 
+    def _run_epoch(self) -> bool:
+        # handle early stopping
+        if (self._early_stopping is not None) and self._early_stopping(self):
+            return False
+
+        # loop over each operator
+        for op in self._operators:
+            self._captures[op.op_id] = op(self)
+
+        # write to journals
+        self._fitnesses_history[self._curr_generation] = self._captures[-1].fitnesses
+        self._objectives_history[self._curr_generation] = self._captures[-1].objectives
+
+        # handle callbacks
+        for callback in self._callbacks:
+            callback(self)
+
+        # clear all captures but last
+        self._captures[:-1] = [None] * (len(self._captures) - 1)
+        
+        return True
+    
+    def _save_state(self):
+        if self._results_dir is not None:
+            np.savez(
+                '{}/{}.npz'.format(self._results_dir, datetime.now().strftime('%y-%m-%d-%H-%M-%S')),
+                individuals=self._captures[-1].individuals,
+                objectives=self._objectives_history[:self.current_generation + 1],
+                fitnesses=self._fitnesses_history[:self.current_generation + 1]
+            )
+        
     def run(
-            self, population_size: int = 32, generation_cap: int = 64, *args, **kwargs
+        self, population_size: int = 32, generation_cap: int = 64, *args, **kwargs
     ) -> Tuple[Population, np.ndarray, np.ndarray]:
         # init volatile fields
         self._is_running = True
-        self._captures: List[Population] = [None] * len(self._operators)
+        
         self._population_size = population_size
         self._generation_cap = generation_cap
+
+        #init captures
+        self._captures: List[Population] = [None] * len(self._operators)
 
         # run initialization with optional params
         init_individuals = self._initializer(self.population_size, *args, **kwargs)
@@ -245,29 +285,42 @@ class GeneticAlgorithm:
         self._objectives_history = np.empty((generation_cap,) + init_pop.objectives.shape, init_pop.objectives.dtype)
 
         # loop over generations
-        for self._curr_generation in range(self.generation_cap):
-            # handle early stopping
-            if (self._early_stopping is not None) and self._early_stopping(self):
-                break
+        self._curr_generation = 0
+        while self._curr_generation < self._generation_cap and self._run_epoch():
+            self._curr_generation += 1
 
-            # loop over each operator
-            for op in self._operators:
-                self._captures[op.op_id] = op(self)
-
-            # write to journals
-            self._fitnesses_history[self._curr_generation] = self._captures[-1].fitnesses
-            self._objectives_history[self._curr_generation] = self._captures[-1].objectives
-
-            # handle callbacks
-            for callback in self._callbacks:
-                callback(self)
-
-            # clear all captures but last
-            self._captures[:-1] = [None] * (len(self._captures) - 1)
+        # save results
+        self._save_state()
 
         # clean up
         self._is_running = False
-        result, fitnesses, objectives = self._captures[-1], self._fitnesses_history, self._objectives_history
-        self._captures = self._fitnesses_history = self._objectives_history = None
+        
+        return self._captures[-1], self._fitnesses_history, self._objectives_history
 
-        return result, fitnesses, objectives
+    def resume(self, generation_cap: int = 64) -> Tuple[Population, np.ndarray, np.ndarray]:
+        # init volatile fields
+        self._is_running = True
+        
+        self._generation_cap += generation_cap
+        
+        # initialize journals
+        self._fitnesses_history = np.concatenate((
+            self._fitnesses_history,
+            np.empty((generation_cap,) + self._fitnesses_history.shape[1:], np.float)
+        ))
+        self._objectives_history = np.concatenate((
+            self._objectives_history,
+            np.empty((generation_cap,) + self._objectives_history.shape[1:], np.float)
+        ))
+        
+        # loop over generations
+        while self._curr_generation < self._generation_cap and self._run_epoch():
+            self._curr_generation += 1
+        
+        # save results
+        self._save_state()
+        
+        # clean up
+        self._is_running = False
+        
+        return self._captures[-1], self._fitnesses_history, self._objectives_history
