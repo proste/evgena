@@ -15,7 +15,7 @@ class SSIM:
             
             # weighting gaussian window
             window_half = size // 2
-            x_data, y_data = np.mgrid[-window_half:window_half+1,-window_half:window_half+1]
+            x_data, y_data = np.mgrid[(- window_half):(window_half + 1),(- window_half):(window_half + 1)]
 
             g = np.exp(-((x_data**2 + y_data**2)/(2.0*sigma**2)))
             normed_g = g / np.sum(g)
@@ -30,16 +30,16 @@ class SSIM:
             # ssim computation
             mu_x = tf.nn.conv2d(self.images_x, window, strides=[1, 1, 1, 1], padding='VALID')
             mu_x_sq = mu_x * mu_x
-            sigma_x_sq = tf.nn.conv2d(self.images_x*self.images_x, window, strides=[1, 1, 1, 1], padding='VALID') - mu_x_sq
+            sigma_x_sq = tf.abs(tf.nn.conv2d(self.images_x*self.images_x, window, strides=[1, 1, 1, 1], padding='VALID') - mu_x_sq)
             sigma_x = tf.sqrt(sigma_x_sq)
             
             mu_y = tf.nn.conv2d(self.images_y, window, strides=[1, 1, 1, 1], padding='VALID')
             mu_y_sq = mu_y * mu_y
-            sigma_y_sq = tf.nn.conv2d(self.images_y*self.images_y, window, strides=[1, 1, 1, 1], padding='VALID') - mu_y_sq
+            sigma_y_sq = tf.abs(tf.nn.conv2d(self.images_y*self.images_y, window, strides=[1, 1, 1, 1], padding='VALID') - mu_y_sq)
             sigma_y = tf.sqrt(sigma_y_sq)
             
             mu_xy = mu_x * mu_y
-            sigma_xy = tf.nn.conv2d(self.images_x*self.images_y, window, strides=[1, 1, 1, 1], padding='VALID') - mu_xy
+            sigma_xy = tf.abs(tf.nn.conv2d(self.images_x*self.images_y, window, strides=[1, 1, 1, 1], padding='VALID') - mu_xy)
             
             self.ssim_luminance = (2 * mu_xy + C1) / (mu_x_sq + mu_y_sq + C1)
             self.ssim_contrast = (2 * sigma_x * sigma_y + C2) / (sigma_x_sq + sigma_y_sq + C2)
@@ -59,3 +59,10 @@ class SSIM:
             self.ssim_metrics,
             feed_dict={self.images_x: images_x, self.images_y: images_y}
         )
+    
+
+def mse(images_x, images_y):
+    if images_y.shape != images_x.shape:
+            raise ValueError('images_x and images_y shapes mismatch - shapes must be equal')
+    
+    return np.mean(np.square(images_x - images_y), axis=tuple(range(1, images_x.ndim)))
