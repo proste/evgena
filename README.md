@@ -1,20 +1,17 @@
 # Evolutionary Generated Adversarial Examples #
------------------------------------------------
-Štěpán Procházka (author, [Charles University in Prague][mff])
-Roman Neruda (supervisor, [Academy of Sciences of the Czech Republic][avcr])
 
-[mff]: https://www.mff.cuni.cz/
-[avcr]: http://www.ustavinformatiky.cz/
---------------------------------------------------------------------------------
+Štěpán Procházka (author, [Charles University in Prague][mff])  
+Roman Neruda (supervisor, [Academy of Sciences of the Czech Republic][avcr])  
+
+[mff]: https://www.mff.cuni.cz/  
+[avcr]: http://www.ustavinformatiky.cz/  
 
 ## Table of Contents ##
 
-0.  [Introduction](#introduction)
+0.  [Introduction](#evolutionary-generated-adversarial-examples)
 1.  [10 minutes to Evgena](#10-minutes-to-evgena)
 2.  [100 minutes to Evgena](#100-minutes-to-evgena)
 3.  [Features](#features)
-
-## Introduction ##
 
 ## 10 minutes to Evgena ##
 clone the repository
