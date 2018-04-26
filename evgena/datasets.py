@@ -2,8 +2,6 @@ from typing import Mapping, Iterator
 
 import numpy as np
 
-from evgena.utils.large_files import maybe_download
-
 
 class Dataset:
     @staticmethod
