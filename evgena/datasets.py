@@ -188,7 +188,7 @@ class Dataset:
         
         """
         example_dtype = np.dtype([('X', X.dtype, X.shape[1:]), ('y', y.dtype, y.shape[1:])])
-        data = np.recarray.from_arrays((X, y), dtype=example_dtype)
+        data = np.rec.fromarrays((X, y), dtype=example_dtype)
         
         edge_i = int(len(X) * train_ratio)
         
@@ -226,8 +226,8 @@ class Dataset:
             ('y', train_y.dtype, train_y.shape[1:])
         ])
         
-        train = np.recarray.from_arrays((train_X, train_y), dtype=example_dtype)
-        test = np.recarray.from_arrays((test_X, test_y), dtype=example_dtype)
+        train = np.rec.fromarrays((train_X, train_y), dtype=example_dtype)
+        test = np.rec.fromarrays((test_X, test_y), dtype=example_dtype)
         
         return cls(train, test, metadata=metadata)
 
