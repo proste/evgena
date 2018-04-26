@@ -5,51 +5,23 @@ import hashlib
 from .file_system import copyfileobj
 
 
-# lfs = {
-#     "datasets": {
-#         "emnist_balanced": {
-#             "train_X": [],
-#             "train_y": [],
-#             "test_X": [],
-#             "test_y": []
-#         },
-#         "mnist": {
-#             "train_X": [],
-#             "train_y": [],
-#             "test_X": [],
-#             "test_y": []
-#         }
-#     },
-#     "models": {
-#         "best_residual_dropout_nn_emnist_2.h5": []
-#     }
-# }
-
 lfs = [
     (
-        'datasets/emnist_balanced_train.npy',
-        '5d6b4ee552c50687b56a92ce443438f612df06263c644596b1fad68451b72d2f',
-        'http://www.ms.mff.cuni.cz/~prochas7/evgena/emnist_balanced_train.npy.gz'
-    ), (
-        'datasets/emnist_balanced_test.npy',
-        'b0eb652b7bcd220b4382cdbde2132347e3ad4f3ada973032f74595fc56850255',
-        'http://www.ms.mff.cuni.cz/~prochas7/evgena/emnist_balanced_test.npy.gz'
-    ), (
-        'datasets/mnist_train.npy',
-        'e76d03149d49d074a0e7da5f5ccb2794ef3c92c518fd2a4238518fc355ad5b0f',
-        'http://www.ms.mff.cuni.cz/~prochas7/evgena/mnist_train.npy.gz'
-    ), (
-        'datasets/mnist_test.npy',
-        '86678d169b399e237d6d70bdda3c2406dcaff88b26f43047f84e1852b06dbe6f',
-        'http://www.ms.mff.cuni.cz/~prochas7/evgena/mnist_test.npy.gz'
-    ), (
         'models/best_residual_dropout_nn_emnist_2.h5',
         'cd218391e561e13391cabb290d9d7f9bafb9a1bc843c198c1e8a563179454f15',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/best_residual_dropout_nn_emnist_2.h5.gz'
     ), (
+        'datasets/mnist.npz',
+        'b9ec3f9496f3fe830eeaf0aac28d364d61dc304058430330b464ff43b8fd53dc',
+        'http://www.ms.mff.cuni.cz/~prochas7/evgena/mnist.npz.gz'
+    ), (
         'datasets/fashion_mnist.npz',
         'f6ed33b2819f8aaa4347c79c2909b60a57804a3b2048a4561fbdb73fb5632605',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/fashion_mnist.npz.gz'
+    ), (
+        'datasets/cifar_10.npz',
+        '9285625edb29ac2b5dd2b8a94b69d84d3e16b0cc2320fece979e880c292fcd32',
+        'http://www.ms.mff.cuni.cz/~prochas7/evgena/cifar_10.npz.gz'
     )
 ]
 
