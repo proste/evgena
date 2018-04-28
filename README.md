@@ -15,17 +15,22 @@ Roman Neruda (supervisor, [Academy of Sciences of the Czech Republic][avcr])
 
 ## 10 minutes to Evgena ##
 clone the repository
+
 ```shell
 $ git clone https://github.com/proste/evgena.git
 $ cd evgena
 ```
+
 create environment, activate and install requirements
+
 ```shell
 $ python3 -m venv .env
 $ . .env
 $ pip install -r requirements.txt
 ```
+
 run jupyter notebook
+
 ```shell
 $ jupyter notebook
 ```
