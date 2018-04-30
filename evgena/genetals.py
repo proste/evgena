@@ -1,10 +1,10 @@
-from typing import Callable
+from typing import Callable, Sequence
 
 import numpy as np
 
 from .models import Model
 from .data_transformations import augment_images
-from genetals.core import ObjectiveFncBase
+from genetals.core import ObjectiveFncBase, InitializerBase
 
 
 class Images2LabelObjectiveFnc(ObjectiveFncBase):
@@ -33,7 +33,7 @@ class Images2LabelObjectiveFnc(ObjectiveFncBase):
         
         self._source_i = self._sample_size
       
-    def __call__(self, individuals: np.ndarray) -> np.ndarray:
+    def __call__(self, genes: np.ndarray) -> np.ndarray:
         # fetch samples
         images = self._source_images[self._source_index[self._samples.index]]
         
@@ -54,11 +54,11 @@ class Images2LabelObjectiveFnc(ObjectiveFncBase):
         self._samples.ttl[death_mask] = 1
         
         # augment images
-        augmented_images = augment_images(individuals, images)
+        augmented_images = augment_images(genes, images)
         augmented_images_batch_shaped = augmented_images.reshape(-1, *augmented_images.shape[2:])
         
         # for each individual sample its predictions, copmute ssim mean ssim
-        norms = self._metrics(augmented_images_batch_shaped, np.expand_dims(images, 0).repeat(len(individuals), axis=0).reshape(augmented_images_batch_shaped.shape))
+        norms = self._metrics(augmented_images_batch_shaped, np.expand_dims(images, 0).repeat(len(genes), axis=0).reshape(augmented_images_batch_shaped.shape))
         norms = norms.reshape(augmented_images.shape[:2])
         logits = self._model(augmented_images_batch_shaped)[:, self._target_label]
         logits = logits.reshape(augmented_images.shape[:2])

@@ -1,20 +1,20 @@
-import numpy as np
-
 from os import makedirs
 from datetime import datetime
 from typing import List, Callable, Tuple
 from abc import ABC, abstractmethod
 
+import numpy as np
+
 
 class FitnessFncBase(ABC):
     @abstractmethod
-    def __call__(self, individuals: np.ndarray, objectives: np.ndarray) -> np.ndarray:
+    def __call__(self, genes: np.ndarray, objectives: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
 
 class ObjectiveFncBase(ABC):
     @abstractmethod
-    def __call__(self, individuals: np.ndarray) -> np.ndarray:
+    def __call__(self, genes: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
 
@@ -77,49 +77,49 @@ class Population:
 
     @property
     def size(self) -> int:
-        return len(self._individuals)
+        return len(self._genes)
 
     @property
-    def individuals(self) -> np.ndarray:
-        return self._individuals
+    def genes(self) -> np.ndarray:
+        return self._genes
 
     @property
     def objectives(self) -> np.ndarray:
-        self._evaluate_objective()
-        return self._objective
+        self._evaluate_objectives()
+        return self._objectives
 
     @property
     def fitnesses(self) -> np.ndarray:
-        self._evaluate_fitness()
-        return self._fitness
+        self._evaluate_fitnesses()
+        return self._fitnesses
 
-    def __init__(self, individuals: np.ndarray, ga: 'GeneticAlgorithm'):
-        # define individuals and make them read only
-        if individuals.flags['OWNDATA']:
-            self._individuals = individuals
+    def __init__(self, genes: np.ndarray, ga: 'GeneticAlgorithm'):
+        # define genes and make them read only
+        if genes.flags['OWNDATA']:
+            self._genes = genes
         else:
-            self._individuals = individuals.copy()
+            self._genes = genes.copy()
 
-        self._individuals.flags['WRITEABLE'] = False
+        self._genes.flags['WRITEABLE'] = False
 
-        # define ga to which this pop belong
+        # define ga to which this pop belongs
         self._ga = ga
 
         # initialize objective and fitness value tables
-        self._objective = None
-        self._fitness = None
+        self._objectives = None
+        self._fitnesses = None
 
-    def _evaluate_objective(self) -> None:
-        if self._objective is None:
-            self._objective = self._ga.objective_fnc(self._individuals)
-            self._objective.flags['WRITEABLE'] = False
+    def _evaluate_objectives(self) -> None:
+        if self._objectives is None:
+            self._objectives = self._ga.objective_fnc(self._genes)
+            self._objectives.flags['WRITEABLE'] = False
 
-    def _evaluate_fitness(self) -> None:
-        if self._fitness is None:
-            self._evaluate_objective()
+    def _evaluate_fitnesses(self) -> None:
+        if self._fitnesses is None:
+            self._evaluate_objectives()
 
-            self._fitness = self._ga.fitness_fnc(self._individuals, self._objective)
-            self._fitness.flags['WRITEABLE'] = False
+            self._fitnesses = self._ga.fitness_fnc(self._genes, self._objectives)
+            self._fitnesses.flags['WRITEABLE'] = False
 
 
 class OperatorGraph:
@@ -258,7 +258,7 @@ class GeneticAlgorithm:
         if self._results_dir is not None:
             np.savez(
                 '{}/{}.npz'.format(self._results_dir, datetime.now().strftime('%y-%m-%d-%H-%M-%S')),
-                individuals=self._captures[-1].individuals,
+                genes=self._captures[-1].genes,
                 objectives=self._objectives_history[:self.current_generation + 1],
                 fitnesses=self._fitnesses_history[:self.current_generation + 1]
             )
@@ -276,8 +276,8 @@ class GeneticAlgorithm:
         self._captures: List[Population] = [None] * len(self._operators)
 
         # run initialization with optional params
-        init_individuals = self._initializer(self.population_size, *args, **kwargs)
-        init_pop = Population(init_individuals, self)
+        init_genes = self._initializer(self.population_size, *args, **kwargs)
+        init_pop = Population(init_genes, self)
         self._captures[-1] = init_pop
 
         # initialize journals

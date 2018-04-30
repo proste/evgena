@@ -32,7 +32,7 @@ class BestReport(CallbackBase):
 
         print('{gen_i:3d}: {ind}'.format(
             gen_i=ga.current_generation,
-            ind=offspring.individuals[offspring.fitnesses.argmax()]
+            ind=offspring.genes[offspring.fitnesses.argmax()]
         ))
 
 
@@ -49,7 +49,7 @@ class BestImgReport(CallbackBase):
         offspring = ga.capture(-1)
         best_i = offspring.fitnesses.argmax()
 
-        self._ax.imshow(offspring.individuals[best_i], cmap='gray')
+        self._ax.imshow(offspring.genes[best_i], cmap='gray')
 
 
 class HistoryReport(CallbackBase):
