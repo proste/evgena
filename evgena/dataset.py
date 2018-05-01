@@ -371,12 +371,12 @@ class Dataset:
             preserve distribution of labels across splits, defaults to True
         
         """
-        edge_i = int(len(X) * train_ratio)
+        edge_i = int(len(self._train) * train_ratio)
         
         if (not do_shuffle) and (not do_stratified):
             self._train_split, self._val_split = self._train[:edge_i], self._train[edge_i:]
         else:
-            ordering = cls._create_ordering(
+            ordering = self._create_ordering(
                 self._train.y, do_shuffle=do_shuffle, do_stratified=do_stratified
             )
             
