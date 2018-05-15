@@ -1,3 +1,5 @@
+from hashlib import md5
+from struct import unpack
 from typing import Mapping, Iterator
 
 import numpy as np
@@ -5,12 +7,31 @@ import numpy as np
 
 class Dataset:
     @staticmethod
+    def _example_dtype(X: np.ndarray, y: np.ndarray) -> np.dtype:
+        return np.dtype([('id', np.int64, 2), ('X', X.dtype, X.shape[1:]), ('y', y.dtype, y.shape[1:])])
+    
+    @staticmethod
+    def _examples_ids(X: np.ndarray, y: np.ndarray) -> np.ndarray:
+        example_count = len(X)
+        ids = np.empty(shape=(example_count, 2), dtype=np.int64)
+        
+        for example_i in range(example_count):
+            example_hash = md5(X[example_i].data)
+            example_hash.update(y[example_i].data)
+            
+            ids[example_i] = unpack('ll', example_hash.digest())
+            
+        return ids
+        
+    
+    @staticmethod
     def _ndarray_to_readonly(arr: np.ndarray) -> np.ndarray:
         ro_arr = arr.view()
         ro_arr.flags['WRITEABLE'] = False
         
         return ro_arr
     
+    # TODO resolve ordering based on IDs
     @staticmethod
     def _create_ordering(
         labels: np.ndarray, do_shuffle: bool = False, do_stratified: bool = False
@@ -153,7 +174,8 @@ class Dataset:
     
     @classmethod
     def from_data(cls,
-        X: np.ndarray, y: np.ndarray, train_ratio: float = 0.8,
+        X: np.ndarray, y: np.ndarray,
+        train_ratio: float = 0.6, dev_ratio: float = 0.2,
         do_shuffle: bool = True, do_stratified: bool = True,
         metadata: Mapping[str, np.ndarray] = None
     ) -> 'Dataset':
@@ -169,7 +191,9 @@ class Dataset:
         y : np.ndarray
             labels aligned with `examples`
         train_ratio : float
-            fraction of data to be taken as train set, defaults to 0.8
+            fraction of data to be taken as train set, defaults to 0.6
+        dev_ratio : float
+            fraction of data to be taken as development set, defaults to 0.2
         do_shuffle : bool
             whether  to shuffle data before before dataset creation (this option
             has no effect if `fraction` is None), defaults to False
@@ -185,25 +209,27 @@ class Dataset:
             created dataset filled with (X, y) data
         
         """
-        example_dtype = np.dtype([('X', X.dtype, X.shape[1:]), ('y', y.dtype, y.shape[1:])])
-        data = np.rec.fromarrays((X, y), dtype=example_dtype)
+        ids = cls._examples_ids(X, y)
+        data = np.rec.fromarrays((ids, X, y), dtype=cls._example_dtype(X, y))
         
-        edge_i = int(len(X) * train_ratio)
+        train_val_edge = int(len(X) * train_ratio)
+        train_test_edge = int(len(X) * (train_ratio + val_ratio))
         
         if (not do_shuffle) and (not do_stratified):
-            train, test = data[:edge_i], data[edge_i:]
+            train, test = data[:train_test_edge], data[train_test_edge:]
         else:
             ordering = cls._create_ordering(
                 data.y, do_shuffle=do_shuffle, do_stratified=do_stratified
             )
             
-            train, test = data[ordering[:edge_i]], data[ordering[edge_i:]]
+            train, test = data[ordering[:train_test_edge]], data[ordering[train_test_edge:]]
         
-        return cls(train, test, metadata=metadata)
+        return cls(train, test, train_val_edge=train_val_edge, metadata=metadata)
     
     @classmethod
     def from_splits(cls,
         train_X: np.ndarray, train_y: np.ndarray,
+        val_X: np.ndarray, val_y: np.ndarray,
         test_X: np.ndarray, test_y: np.ndarray,
         metadata: Mapping[str, np.ndarray] = None
     ) -> 'Dataset':
@@ -213,21 +239,27 @@ class Dataset:
         ----------
         train_X, train_y : np.ndarray, np.ndarray
             train set examples and corresponding labels
+        val_X, val_y : np.ndarray, np.ndarray
+            validation set examples and corresponding labels
         test_X, test_y : np.ndarray, np.ndarray
             test set examples and corresponding labels
         metadata : Mapping[str, np.ndarray], optional
             additional info to be stored along with data (synset, license, etc.)
 
         """
-        example_dtype = np.dtype([
-            ('X', train_X.dtype, train_X.shape[1:]),
-            ('y', train_y.dtype, train_y.shape[1:])
-        ])
+        example_dtype = cls._example_dtype(train_X, train_y)
         
-        train = np.rec.fromarrays((train_X, train_y), dtype=example_dtype)
-        test = np.rec.fromarrays((test_X, test_y), dtype=example_dtype)
+        train_val_edge = len(train_X)
         
-        return cls(train, test, metadata=metadata)
+        train_X = np.concatenate((train_X, val_X))
+        train_y = np.concatenate((train_y, val_y))
+        train_ids = cls._examples_ids(train_X, train_y)
+        test_ids = cls._examples_ids(test_X, test_y)
+        
+        train = np.rec.fromarrays((train_ids, train_X, train_y), dtype=example_dtype)
+        test = np.rec.fromarrays((test_ids, test_X, test_y), dtype=example_dtype)
+        
+        return cls(train, test, train_val_edge=train_val_edge, metadata=metadata)
 
     
     @classmethod
@@ -249,12 +281,14 @@ class Dataset:
         
         train = nprecord['train'].view(np.recarray)
         test = nprecord['test'].view(np.recarray)
+        train_val_edge = nprecord['train_val_edge']
         
         return cls(
             train, test,
+            train_val_edge=train_val_edge,
             metadata={
                 key: nprecord[key]
-                for key in nprecord if (key not in ['train', 'test'])
+                for key in nprecord if (key not in ['train', 'test', 'train_val_edge'])
             }
         )
     
@@ -262,6 +296,7 @@ class Dataset:
         self,
         train: np.recarray,
         test: np.recarray,
+        train_val_edge: int,
         metadata: Mapping[str, np.ndarray] = None
     ):
         """
@@ -271,17 +306,34 @@ class Dataset:
             record array with (X, y) training example pairs
         test : np.recarray, optional
             record array with (X, [y]) examples with optional labels
+        train_val_edge : int
+            index where to split training examples into training and validation sets,
+            -1 creates empty validation set
         metadata : Mapping[str, np.ndarray], optional
             dictionary  of  (str: np.ndarray)  key,  val  pairs. Usually synset,
             license, description
         
         """
-        self._train = self._train_split = self._ndarray_to_readonly(train)
-        self._val_split = None
-        self._test = self._test_split = self._ndarray_to_readonly(test)
+        # TODO id collisions warning
+        
+        self._train = self._ndarray_to_readonly(train)
+        self._test = self._ndarray_to_readonly(test)
+        
+        self._train_val_edge = len(self._train) if (train_val_edge == -1) else train_val_edge
+
+        self._test_split = self._test
+        
         self._metadata = {} if (metadata is None) else {
             key: self._ndarray_to_readonly(val) for key, val in metadata.items()
         }
+    
+    @property
+    def _train_split(self):
+        return self._train[:self._train_val_edge]
+    
+    @property
+    def _val_split(self):
+        return self._train[self._train_val_edge:]
     
     @property
     def train(self):
@@ -346,11 +398,61 @@ class Dataset:
         arrays_to_save = self._metadata.copy()
         arrays_to_save['train'] = self._train
         arrays_to_save['test'] = self._test
+        arrays_to_save['train_val_edge'] = self._train_val_edge
         
         np.savez(path, **arrays_to_save)
         
+    def save_layout(self, path) -> None:
+        """Save current layout of dataset
+        
+        Persists ordering and train/validation splits for later restoration.
+        
+        Parameters
+        ----------
+        path : str
+            path to file the layout will be written to
+        
+        """
+        np.savez(
+            path, train_id=self._train.id, test_id=self._test.id,
+            train_val_edge=self._train_val_edge
+        )
+        
+    def load_layout(self, path) -> None:
+        """Restores layout from previously stored one
+        
+        Restores layout from snapshot persisted with ``save_layout`` function
+        
+        Parameters
+        ----------
+        path : str
+            path to file the layout will be loaded from
+        
+        """
+        layout = np.load(path)
+        
+        # reorder train and test so that ids are aligned
+        orderings = []
+        for source, target in [(self._train.id, layout['train_id']), (self._test.id), layout['test_id']]:
+            if source == target:
+                orderings.append(None)
+            else:
+                source_to_sorted = np.lexsort((source[:, 1], source[:, 0]))
+                target_to_sorted = np.lexsort((target[:, 1], target[:, 0]))
+                sorted_to_target = np.argsort(target_to_sorted)
+
+                source_to_target = source_to_sorted[sorted_to_target]
+                
+                orderings.append(source_to_target)
+        
+        train_ordering, test_ordering = orderings
+        
+        self._train = self._train[train_ordering] if train_ordering is not None else self._train
+        self._test = self._test[test_ordering] if test_ordering is not None else self._test
+        self._train_val_edge = layout['train_val_edge']
+        
     def create_validation_split(self,
-        train_ratio: float = 0.8, do_shuffle: bool = True, do_stratified: bool = True
+        train_ratio: float = 0.75, do_shuffle: bool = True, do_stratified: bool = True
     ) -> None:
         """Holds out part of train set as a validation split
 
@@ -364,25 +466,21 @@ class Dataset:
         ----------
         train_ratio : float
             fraction of the training set to be taken as training split, defaults
-            to 0.8
+            to 0.75
         do_shuffle : bool
             shuffle training set before splitting, defaults to True
         do_stratified : bool
             preserve distribution of labels across splits, defaults to True
         
         """
-        edge_i = int(len(self._train) * train_ratio)
+        self._train_val_edge = int(len(self._train) * train_ratio)
         
-        if (not do_shuffle) and (not do_stratified):
-            self._train_split, self._val_split = self._train[:edge_i], self._train[edge_i:]
-        else:
+        if do_shuffle or do_stratified:
             ordering = self._create_ordering(
                 self._train.y, do_shuffle=do_shuffle, do_stratified=do_stratified
             )
             
-            self._train_split = self._train[ordering[:edge_i]]
-            self._val_split = self._train[ordering[edge_i:]]
-        
+            self._train = self._train[ordering]  # TODO inplace ??
     
     def batch_over_test(self, batch_size: int = 32) -> Iterator[np.recarray]:
         """Generates batches of test split data
@@ -397,7 +495,8 @@ class Dataset:
         Yields
         -------
         np.recarray
-            batches as record arrays with .X (examples), .y (labels) fields
+            batches as record arrays with .X (examples), .y (labels)
+            and .id (example MD5 hash) fields
         
         """
         yield from self._batch_over(self._test_split, batch_size=batch_size)
@@ -416,17 +515,10 @@ class Dataset:
         Yields
         -------
         np.recarray
-            batches as record arrays with .X (examples), .y (labels) fields
-        
-        Raises
-        ------
-        ValueError
-            if validation set does not exist
+            batches as record arrays with .X (examples), .y (labels)
+            and .id (example MD5 hash) fields
         
         """
-        if self._val_split is None:
-            raise ValueError('Validation split does not exist, you must create it first')
-            
         yield from self._batch_over(self._val_split, batch_size=batch_size)
     
     def batch_over_train(self,
@@ -450,7 +542,8 @@ class Dataset:
         Yields
         -------
         np.recarray
-            batches as record arrays with .X (examples), .y (labels) fields
+            batches as record arrays with .X (examples), .y (labels)
+            and .id (example MD5 hash) fields
         
         """
         yield from self._batch_over(
