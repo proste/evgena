@@ -108,11 +108,21 @@ class Dataset:
         joint_metadata = {}
         for dataset in datasets:
             joint_metadata.update(dataset._metadata)
+        
+        train_val_edge = 0
+        trains = []
+        vals = []
+        tests = []
+        for dataset in datasets:
+            train_val_edge += len(dataset.train)
+            trains.append(dataset.train)
+            vals.append(dataset.val)
+            tests.append(dataset.test)
             
         return cls(
-            np.concatenate(dataset._train for dataset in datasets),
-            np.concatenate(dataset._test for dataset in datasets),
-            metadata=joint_metadata
+            np.concatenate(trains + vals).view(np.recarray),
+            np.concatenate(tests).view(np.recarray),
+            train_val_edge=train_val_edge, metadata=joint_metadata
         )
     
     @classmethod
@@ -149,28 +159,36 @@ class Dataset:
         
         """
         if label_subset is None:
-            filtered_train = super_dataset._train
-            filtered_test = super_dataset._test
+            filtered_train = super_dataset.train
+            filtered_val = super_dataset.val
+            filtered_test = super_dataset.test
         else:
-            filtered_train = super_dataset._train[
-                np.isin(super_dataset._train.y, label_subset)
+            filtered_train = super_dataset.train[
+                np.isin(super_dataset.train.y, label_subset)
             ]
-            filtered_test = super_dataset._test[
-                np.isin(super_dataset._test.y, label_subset)
+            filtered_val = super_dataset.val[
+                np.isin(super_dataset.val.y, label_subset)
+            ]
+            filtered_test = super_dataset.test[
+                np.isin(super_dataset.test.y, label_subset)
             ]
             
         if fraction is None:
             scaled_train = filtered_train
+            scaled_val = filtered_val
             scaled_test = filtered_test
         else:
-            scaled_train, scaled_test = (
+            scaled_train, scaled_val, scaled_test = (
                 split[cls._create_ordering(
                     split.y, do_shuffle=do_shuffle, do_stratified=do_stratified
                 )[:int(fraction * len(split))]]
-                for split in (filtered_train, filtered_test)
+                for split in (filtered_train, filtered_val, filtered_test)
             )
         
-        return cls(scaled_train, scaled_test, metadata=super_dataset._metadata)
+        return cls(
+            np.concatenate((scaled_train, scaled_val)).view(np.recarray), scaled_test,
+            train_val_edge=len(scaled_train), metadata=super_dataset._metadata
+        )
     
     @classmethod
     def from_data(cls,
