@@ -1,8 +1,10 @@
+from abc import ABC, abstractmethod
+
 import numpy as np
 import tensorflow as tf
 import keras
 
-from abc import ABC, abstractmethod
+from evgena.data_transformations import images_to_BHWC
 
 
 class Model(ABC):
@@ -24,30 +26,72 @@ class KerasModel(Model):
 
 # needs to be called - lazy loading issues
 tf.contrib.summary
-
+    
 class TfModel(Model):
-    def __init__(self, path, inputs_collection, outputs_collection, batch_size: int = 32):
+    def __init__(
+        self, path: str, batch_size: int = 32,
+        inputs_collection: str = 'end_points/inputs',
+        scores_collection: str = 'end_points/scores',
+        predictions_collection: str = 'end_points/predictions',
+        labels_collection: str = 'end_points/labels',
+        loss_collection: str = 'end_points/loss',
+        is_training_collection: str = 'end_points/is_training'
+    ):
         super(TfModel, self).__init__()
-
-        self._session = tf.Session(graph=tf.Graph())
         
-        with self._session.graph.as_default():
+        self._batch_size = batch_size
+        self._graph = tf.Graph()
+        self._session = tf.Session(
+            graph=self._graph,
+            config=tf.ConfigProto(
+                gpu_options=tf.GPUOptions(
+                    allow_growth=True
+                )
+            )
+        )
+        
+        with self._graph.as_default():
             saver = tf.train.import_meta_graph(path + '.meta')
             saver.restore(self._session, path)
-
-        self._training_phase = self._session.graph.get_collection('end_points/training_phase')[0]
-        self._input = self._session.graph.get_collection(inputs_collection)[0]
-        self._output = self._session.graph.get_collection(outputs_collection)[0]
-        self._batch_size = batch_size
-
-    def __call__(self, examples: np.ndarray) -> np.ndarray:
-        if len(examples.shape[1:]) == 2:
-            examples = np.expand_dims(examples, -1)
-            
-        result = np.empty([len(examples)] + self._output.shape.as_list()[1:], dtype=np.float32)
         
-        for batch_begin in range(0, len(examples), self._batch_size):
-            batch_end = batch_begin + self._batch_size
-            result[batch_begin:batch_end] = self._session.run(self._output, feed_dict={self._training_phase: False, self._input: examples[batch_begin:batch_end]})
+        self._inputs, self._scores, self._predictions, self._labels, self._loss, self._is_training = [
+            (self._graph.get_collection(collection) + [None])[0]
+            for collection in [
+                inputs_collection, scores_collection, predictions_collection,
+                labels_collection, loss_collection, is_training_collection
+            ]
+        ]
+        
+        if self._loss is None:
+            self._gradients = None
+        else:
+            self._gradients = tf.gradients(self._loss, self._inputs)
 
-        return result
+    def __call__(self, inputs: np.ndarray) -> np.ndarray:
+        inputs = images_to_BHWC(inputs)
+        
+        results = []
+        
+        for batch_begin in range(0, len(inputs), self._batch_size):
+            batch_end = batch_begin + self._batch_size
+            
+            results.append(self._session.run(
+                self._scores, feed_dict={
+                    self._is_training: False,
+                    self._inputs: inputs[batch_begin:batch_end]
+                }
+            ))
+        
+        return np.concatenate(results)
+    
+    def gradients(self, inputs: np.ndarray, labels: np.ndarray) -> np.ndarray:
+        inputs = images_to_BHWC(inputs)
+        
+        if self._gradients is None:
+            return None
+        else:
+            return self._session.run(self._gradients, feed_dict={
+                self._is_training: False,
+                self._inputs: inputs,
+                self._labels: labels
+            })[0]
