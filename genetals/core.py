@@ -1,6 +1,6 @@
 from os import makedirs
 from datetime import datetime
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Mapping
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -209,7 +209,7 @@ class GeneticAlgorithm:
         self, initializer: InitializerBase, operator_graph: OperatorGraph,
         objective_fnc: ObjectiveFncBase, fitness_fnc: FitnessFncBase = None,
         early_stopping: EarlyStoppingBase = None, callbacks: List[CallbackBase] = None,
-        results_dir=None
+        metadata: Mapping[str, np.ndarray] = None, results_dir: str = None
     ):
         # GA's volatile fields (valid only when GA is running)
         self._is_running = False
@@ -228,6 +228,7 @@ class GeneticAlgorithm:
         self._operators = operator_graph._build_graph()
         self._callbacks = callbacks if (callbacks is not None) else []
         self._results_dir = results_dir
+        self._metadata = metadata
         
         if self._results_dir is not None:
             makedirs(self._results_dir, exist_ok=True)
@@ -260,7 +261,8 @@ class GeneticAlgorithm:
                 '{}/{}.npz'.format(self._results_dir, datetime.now().strftime('%y-%m-%d-%H-%M-%S')),
                 genes=self._captures[-1].genes,
                 objectives=self._objectives_history[:self.current_generation + 1],
-                fitnesses=self._fitnesses_history[:self.current_generation + 1]
+                fitnesses=self._fitnesses_history[:self.current_generation + 1],
+                **self._metadata
             )
         
     def run(
