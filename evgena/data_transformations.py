@@ -5,7 +5,13 @@ import tensorflow as tf
 class _ImageAugmentation:
     def __init__(self):
         graph = tf.Graph()
-        self.session = tf.Session(graph=graph)
+        config=tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
+        self.session = tf.Session(
+            graph=graph,
+            config=config
+        )
         
         with graph.as_default():
             # input placeholders
@@ -20,7 +26,7 @@ class _ImageAugmentation:
             
             # add together with augmentations reshaped
             self.augmented_images = tf.clip_by_value(
-                self.base_images + tf.expand_dims(resized_augmentations, 1), 0.0, 1.1
+                self.base_images + tf.expand_dims(resized_augmentations, 1), 0.0, 1.0
             )
 
     def __call__(self, augmentations, base_images):
