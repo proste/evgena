@@ -1,3 +1,5 @@
+from typing import List, Tuple, Any
+
 import numpy as np
 import tensorflow as tf
 
@@ -66,3 +68,146 @@ def mse(images_x, images_y):
             raise ValueError('images_x and images_y shapes mismatch - shapes must be equal')
     
     return np.mean(np.square(images_x - images_y), axis=tuple(range(1, images_x.ndim)))
+
+
+class ConfusionMatrix:
+    @property
+    def accuracy(self):
+        """Accuracy on data
+
+        Returns
+        -------
+        float
+            accuracy on data
+
+        """
+        return self._absolute.trace() / self._absolute.sum()
+
+    @property
+    def absolute(self):
+        """Confusion matrix
+
+        Returns
+        -------
+        np.ndarray
+            2D confusion matrix, gold x predictions (rows x columns)
+
+        """
+        return self._absolute
+
+    @property
+    def gold_wrt_predicted(self):
+        """Matrix of probabilities P(gold|prediction)
+
+        i.e., probability of given prediction being gold label 
+
+        Returns
+        -------
+        np.ndarray
+            2D array of P(gold|prediction), predictions x gold (rows x columns)
+
+        """
+        return self._gold_wrt_predicted
+
+    @property
+    def predicted_wrt_gold(self):
+        """Matrix of probabilities P(prediction|gold)
+
+        i.e., probability of given gold label being predicted
+
+        Returns
+        -------
+        np.ndarray
+            2D array of P(prediction|gold), gold x prediction (rows x columns)
+
+        """
+        return self._predicted_wrt_gold
+
+    def __init__(self, evaluation: List[Tuple[Any, Any]], label_names: List[str] = None):
+        """Constructs confussion matrix from list of (gold, predicted) pairs
+
+        Parameters
+        ----------
+        evaluation : List[Tuple[Any, Any]]
+            list of pairs (gold, predicted) of labels or IDs of labels
+        label_names : List[str], optional
+            optional list of names of labels aligned with label IDs in evaluation
+
+        """
+        self._evaluation = np.asarray(evaluation)
+
+        if label_names is None:
+            self._label_ids = np.unique(self._evaluation)
+            self._label_names = list(self._label_ids)
+        else:
+            self._label_ids = np.arange(len(label_names))
+            self._label_names = label_names
+
+        self._absolute = np.array([
+            [
+                (self._evaluation[self._evaluation[:, 0] == gold_id][:, 1] == predicted_id).sum()
+                for predicted_id in self._label_ids
+            ]
+            for gold_id in self._label_ids
+        ])
+
+        self._gold_wrt_predicted = (self._absolute / self._absolute.sum(axis=0))
+        self._predicted_wrt_gold = self._absolute / np.expand_dims(self._absolute.sum(axis=1), axis=1)
+
+    def _matrix_to_md(self, matrix, name, formatting):
+        str_matrix = []
+        str_matrix.append([name] + map(str, self._label_names))
+        for label_name, row in zip(self._label_names, matrix):
+            str_matrix.append([str(label_name)] + [('{:' + formatting + '}').format(item) for item in row])
+
+        column_widths = map(max, zip(*[map(len, row) for row in str_matrix]))
+
+        formatted_matrix = [
+            [
+                ('{: >' + str(column_width) + '}').format(item)
+                for column_width, item in zip(column_widths, row)
+            ]
+            for row in str_matrix
+        ]
+
+        markdown = [
+            '| ' + ' | '.join(row) + ' |'
+            for row in formatted_matrix
+        ]
+
+        markdown.insert(1, '|:' + ':|:'.join(['-' * column_width for column_width in column_widths]) + ':|')
+
+        return '\n'.join(markdown)
+
+    def absolute_to_md(self):
+        """Constructs Markdown representation of confusion matrix
+
+        Returns
+        -------
+        str
+            string in Markdown representing confusion matrix
+
+        """
+        return self._matrix_to_md(self.absolute, name='gold\\predicted', formatting='d')
+
+    def gold_wrt_predicted_to_md(self):
+        """Constructs Markdown representation of matrix of P(gold|prediction)
+
+        Returns
+        -------
+        str
+            string in Markdown representing matrix of P(gold|prediction)
+
+        """
+        return self._matrix_to_md(100 * self.gold_wrt_predicted.transpose(), name='predicted\\gold', formatting='.2f')
+
+    def predicted_wrt_gold_to_md(self):
+        """Constructs Markdown representation of matrix of P(prediction|gold)
+
+        Returns
+        -------
+        str
+            string in Markdown representing matrix of P(prediction|gold)
+
+        """
+        return self._matrix_to_md(100 * self.predicted_wrt_gold, name='gold\\predicted', formatting='.2f')
