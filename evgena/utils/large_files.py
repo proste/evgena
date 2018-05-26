@@ -12,15 +12,15 @@ lfs = [
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/best_residual_dropout_nn_emnist_2.h5.gz'
     ), (
         'datasets/mnist.npz',
-        'e141c27c683c1c5d5113a57f63cd04710fc05416d3f24295393f3bf2a34c353d',
+        '216960b5332b64e8bdf5833f93a54476023d15c04385e7bca0c8fff666769f1d',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/mnist.npz.gz'
     ), (
         'datasets/fashion_mnist.npz',
-        '142928d8829fa1c0e9078da075d5c5075b1d8a391c10ac51eeb88fb028ecbca8',
+        'a3eddbc1cb7bc4172cdb5efa32554f75c93a3608baf7f6c63ea7018bee67282d',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/fashion_mnist.npz.gz'
     ), (
         'datasets/cifar_10.npz',
-        'fb271c32edb610bf67d56c66619fdc0e27d03d3bf11e539c29ca67e812f7024f',
+        'f4a1b95c9b1f95e28fabbd6935c166fd3b1961705921c986dd64e4ac17c2a1f3',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/cifar_10.npz.gz'
     )
 ]
