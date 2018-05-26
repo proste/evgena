@@ -10,6 +10,7 @@ import tensorflow as tf
 from .dataset import Dataset
 from .data_transformations import images_to_BHWC
 
+
 class Network:
     def __init__(
         self, constructor: Callable[['Network'], str], im_size: Tuple[int, int],
@@ -48,7 +49,7 @@ class Network:
             self.images = tf.placeholder(tf.float32, [batch_size, *im_size, 1], name='images')
             self.labels = tf.placeholder(tf.float32, [batch_size, self.labels_count], name='labels')
 
-            constructor(self) # define self.logits
+            constructor(self)  # define self.logits
             
             self.predictions = tf.argmax(self.logits, axis=-1, output_type=tf.int32)
             self.scores = tf.nn.softmax(self.logits)
@@ -149,21 +150,21 @@ class Network:
         elif labels.ndim == 2:
             return labels
         else:
-            raise ValueError('Invlalid labels shape')
+            raise ValueError('Invalid labels shape')
 
     def train(
         self, dataset: Dataset, epochs: int, 
         do_shuffle: bool = True, do_stratified: bool = True
     ):
-        modelprefix = 'models/' + self.name + '/'
-        os.makedirs(modelprefix, exist_ok=True)
+        model_prefix = 'models/' + self.name + '/'
+        os.makedirs(model_prefix, exist_ok=True)
         
         if self.epochs == 0:
             np.random.seed = self.seed
         else:
-            self.saver.restore(self.session, modelprefix + str(self.epochs) + '-last')
+            self.saver.restore(self.session, model_prefix + str(self.epochs) + '-last')
             
-        modelprefix += str(self.epochs + epochs) + '-'
+        model_prefix += str(self.epochs + epochs) + '-'
         
         # Train
         best_loss = 666
@@ -174,16 +175,16 @@ class Network:
             print('Epoch: {e:02d}: val acc {a:.4f}'.format(e=self.epochs, a=dev_acc))
     
             if dev_loss < best_loss:
-                self.saver.save(self.session, modelprefix + 'best')
+                self.saver.save(self.session, model_prefix + 'best')
         
-        self.saver.save(self.session, modelprefix + 'last')
+        self.saver.save(self.session, model_prefix + 'last')
         
         # Test
-        self.saver.restore(self.session, modelprefix + 'best')
+        self.saver.restore(self.session, model_prefix + 'best')
         test_acc, test_loss = self._evaluate(dataset, 'test')
         self.session.run(self.flush_summaries)
         
-        with open(modelprefix + 'config.json', 'w') as file:
+        with open(model_prefix + 'config.json', 'w') as file:
             json.dump({
                 'labels_count': self.labels_count,
                 'batch_size': self.batch_size,
