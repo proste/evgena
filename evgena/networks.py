@@ -167,6 +167,7 @@ class Network:
         model_prefix += str(self.epochs + epochs) + '-'
         
         # Train
+        best_acc = 0
         best_loss = 666
         for e_i in range(epochs):
             self._train_epoch(dataset, do_shuffle, do_stratified)
@@ -174,14 +175,22 @@ class Network:
             dev_acc, dev_loss = self._evaluate(dataset, 'val')
             print('Epoch: {e:02d}: val acc {a:.4f}'.format(e=self.epochs, a=dev_acc))
     
-            if dev_loss < best_loss:
-                self.saver.save(self.session, model_prefix + 'best')
+            if best_loss > dev_loss:
+                self.saver.save(self.session, model_prefix + 'best_loss')
+                best_loss = dev_loss
+
+            if best_acc < dev_acc:
+                self.saver.save(self.session, model_prefix + 'best_acc')
+                best_acc = dev_acc
         
         self.saver.save(self.session, model_prefix + 'last')
         
         # Test
-        self.saver.restore(self.session, model_prefix + 'best')
-        test_acc, test_loss = self._evaluate(dataset, 'test')
+        self.saver.restore(self.session, model_prefix + 'best_acc')
+        acc_test_acc, acc_test_loss = self._evaluate(dataset, 'test')
+
+        self.saver.restore(self.session, model_prefix + 'best_loss')
+        loss_test_acc, loss_test_loss = self._evaluate(dataset, 'test')
         self.session.run(self.flush_summaries)
         
         with open(model_prefix + 'config.json', 'w') as file:
@@ -191,8 +200,10 @@ class Network:
                 'learning_rate': self.learning_rate,
                 'seed': self.seed,
                 'constructor': self.constructor_code,
-                'test_acc': float(test_acc),
-                'test_loss': float(test_loss)
+                'acc_test_acc': float(acc_test_acc),
+                'acc_test_loss': float(acc_test_loss),
+                'lost_test_acc': float(loss_test_acc),
+                'lost_test_loss': float(loss_test_loss),
             }, file)
         
-        print('Test acc: {a:.4f}'.format(a=test_acc))
+        print('Test acc: {a:.4f}'.format(a=acc_test_acc))
