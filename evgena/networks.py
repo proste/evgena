@@ -96,7 +96,7 @@ class Network:
             tf.add_to_collection('end_points/scores', self.scores)
             tf.add_to_collection('end_points/predictions', self.predictions)
             tf.add_to_collection('end_points/loss', self.loss)
-            self.saver = tf.train.Saver()
+            self.saver = tf.train.Saver(max_to_keep=None)
             
             # Variable initialization
             self.session.run(tf.global_variables_initializer())
