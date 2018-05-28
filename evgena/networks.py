@@ -202,8 +202,8 @@ class Network:
                 'constructor': self.constructor_code,
                 'acc_test_acc': float(acc_test_acc),
                 'acc_test_loss': float(acc_test_loss),
-                'lost_test_acc': float(loss_test_acc),
-                'lost_test_loss': float(loss_test_loss),
+                'loss_test_acc': float(loss_test_acc),
+                'loss_test_loss': float(loss_test_loss),
             }, file)
         
         print('Test acc: {a:.4f}'.format(a=acc_test_acc))
