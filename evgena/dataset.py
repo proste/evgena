@@ -43,6 +43,13 @@ class Dataset:
         
         if do_stratified:
             labels = labels[ordering] if do_shuffle else labels
+
+            if labels.ndim == 1:
+                pass
+            elif labels.ndim == 2:
+                labels = np.argmax(labels, axis=-1)
+            else:
+                raise ValueError('Cannot stratify labels of dimensionality {}'.format(labels.ndim))
         
             label_sorted_ordering = ordering[np.argsort(labels)]
             
