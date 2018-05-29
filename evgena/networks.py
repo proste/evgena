@@ -8,17 +8,22 @@ import numpy as np
 import tensorflow as tf
 
 from .dataset import Dataset
-from .data_transformations import images_to_BHWC
+from .data_transformations import images_to_BHWC, shape_to_BHWC
+from .metrics import ConfusionMatrix
 
 
 class Network:
     def __init__(
-        self, constructor: Callable[['Network'], str], im_size: Tuple[int, int],
-        labels_count: int, batch_size: int, learning_rate: float,
+        self, constructor: Callable[['Network'], str], dataset_path: str,
+        batch_size: int, learning_rate: float,
         seed: int = 42, tag: str = ''
     ):
-        self.im_size = im_size
-        self.labels_count = labels_count
+        self.dataset_path = dataset_path
+        self.dataset = Dataset.from_nprecord(dataset_path)
+        self.labels_count = max(
+            (split.y.max() + 1) if (split.y.ndim == 1) else split.y.shape[1]
+            for split in (self.dataset.train, self.dataset.val, self.dataset.test)
+        )
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.seed = seed
@@ -26,6 +31,7 @@ class Network:
         self.name = '.'.join((
             datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'), tag
         ))
+        self.training_log = {}
         self.epochs = 0
         
         logdir = 'logs/tf/' + self.name + '/'
@@ -46,8 +52,12 @@ class Network:
             self.global_step = tf.train.create_global_step()
             
             batch_size = tf.Dimension(None)
-            self.images = tf.placeholder(tf.float32, [batch_size, *im_size, 1], name='images')
-            self.labels = tf.placeholder(tf.float32, [batch_size, self.labels_count], name='labels')
+            self.images = tf.placeholder(
+                tf.float32, [batch_size, *shape_to_BHWC(self.dataset.train.X.shape)[1:]], name='images'
+            )
+            self.labels = tf.placeholder(
+                tf.float32, [batch_size, self.labels_count], name='labels'
+            )
 
             constructor(self)  # define self.logits
             
@@ -103,8 +113,8 @@ class Network:
             with summary_writer.as_default():
                 tf.contrib.summary.initialize(session=self.session, graph=self.session.graph)
     
-    def _train_epoch(self, dataset, do_shuffle, do_stratified):
-        for batch in dataset.batch_over_train(self.batch_size, do_shuffle, do_stratified):
+    def _train_epoch(self, do_shuffle, do_stratified):
+        for batch in self.dataset.batch_over_train(self.batch_size, do_shuffle, do_stratified):
             self.session.run(self.reset_metrics)
             self.session.run(
                 [self.training, self.summaries['train']],
@@ -117,18 +127,21 @@ class Network:
         
         self.epochs += 1
             
-    def _evaluate(self, dataset, split_name):
+    def _evaluate(self, split_name):
         if split_name == 'val':
-            batch_generator = dataset.batch_over_val
+            batch_generator = self.dataset.batch_over_val
+            gold_labels = self._encode_labels(self.dataset.val.y)
         elif split_name == 'test':
-            batch_generator = dataset.batch_over_test
+            batch_generator = self.dataset.batch_over_test
+            gold_labels = self._encode_labels(self.dataset.test.y)
         else:
             raise ValueError('Invalid dataset split name')
         
+        predictions = []
         self.session.run(self.reset_metrics)            
         for batch in batch_generator(self.batch_size):
-            self.session.run(
-                [self.update_accuracy, self.update_loss],
+            batch_predictions, *_ = self.session.run(
+                [self.predictions, self.update_accuracy, self.update_loss],
                 {
                     self.images: images_to_BHWC(batch.X),
                     self.labels: self._decode_labels(batch.y),
@@ -136,13 +149,20 @@ class Network:
                 }
             )
             
+            predictions.append(batch_predictions)
+
         acc, loss, *_ = self.session.run([
             self.current_accuracy, self.current_loss, self.summaries[split_name]
         ])
         
-        return acc, loss
+        confusion_matrix = ConfusionMatrix(
+            np.stack((gold_labels, np.concatenate(predictions)), axis=1),
+            self.dataset.metadata.get('synset', None)
+        )
+
+        return acc, loss, confusion_matrix
     
-    def _decode_labels(self, labels: np.ndarray):
+    def _decode_labels(self, labels: np.ndarray) -> np.ndarray:
         if labels.ndim == 1:
             decoded = np.zeros(shape=(len(labels), self.labels_count), dtype=np.float32)
             decoded[np.arange(len(labels)), labels] = 1
@@ -150,10 +170,18 @@ class Network:
         elif labels.ndim == 2:
             return labels
         else:
-            raise ValueError('Invalid labels shape')
+            raise ValueError('Invalid labels shape: {}'.format(labels.shape))
+
+    def _encode_labels(self, labels: np.ndarray) -> np.ndarray:
+        if labels.ndim == 1:
+            return labels
+        elif (labels.ndim == 2) and (labels.shape[1] == self.labels_count):
+            return np.argmax(labels, axis=-1)
+        else:
+            raise ValueError('Invalid labels shape: {}'.format(labels.shape))
 
     def train(
-        self, dataset: Dataset, epochs: int, 
+        self, epochs: int,
         do_shuffle: bool = True, do_stratified: bool = True
     ):
         model_prefix = 'models/' + self.name + '/'
@@ -161,49 +189,59 @@ class Network:
         
         if self.epochs == 0:
             np.random.seed = self.seed
+
+            with open(model_prefix + 'config.json', 'w') as config_f:
+                json.dump({
+                    'batch_size': self.batch_size,
+                    'learning_rate': self.learning_rate,
+                    'seed': self.seed,
+                    'constructor': self.constructor_code,
+                    'dataset_path': self.dataset_path
+                }, config_f)
         else:
-            self.saver.restore(self.session, model_prefix + str(self.epochs) + '-last')
+            self.saver.restore(self.session, model_prefix + 'last')
             
-        model_prefix += str(self.epochs + epochs) + '-'
+        checkpoint_prefix = model_prefix + str(self.epochs + epochs) + '-'
         
         # Train
         best_acc = 0
         best_loss = 666
         for e_i in range(epochs):
-            self._train_epoch(dataset, do_shuffle, do_stratified)
+            self._train_epoch(do_shuffle, do_stratified)
             
-            dev_acc, dev_loss = self._evaluate(dataset, 'val')
+            dev_acc, dev_loss, _ = self._evaluate('val')
             print('Epoch: {e:02d}: val acc {a:.4f}'.format(e=self.epochs, a=dev_acc))
     
             if best_loss > dev_loss:
-                self.saver.save(self.session, model_prefix + 'best_loss')
+                self.saver.save(self.session, checkpoint_prefix + 'best_loss')
                 best_loss = dev_loss
 
             if best_acc < dev_acc:
-                self.saver.save(self.session, model_prefix + 'best_acc')
+                self.saver.save(self.session, checkpoint_prefix + 'best_acc')
                 best_acc = dev_acc
         
         self.saver.save(self.session, model_prefix + 'last')
         
         # Test
-        self.saver.restore(self.session, model_prefix + 'best_acc')
-        acc_test_acc, acc_test_loss = self._evaluate(dataset, 'test')
+        self.saver.restore(self.session, checkpoint_prefix + 'best_acc')
+        acc_test_acc, acc_test_loss, acc_confusion_matrix = self._evaluate('test')
 
-        self.saver.restore(self.session, model_prefix + 'best_loss')
-        loss_test_acc, loss_test_loss = self._evaluate(dataset, 'test')
+        self.saver.restore(self.session, checkpoint_prefix + 'best_loss')
+        loss_test_acc, loss_test_loss, loss_confusion_matrix = self._evaluate('test')
         self.session.run(self.flush_summaries)
         
-        with open(model_prefix + 'config.json', 'w') as file:
-            json.dump({
-                'labels_count': self.labels_count,
-                'batch_size': self.batch_size,
-                'learning_rate': self.learning_rate,
-                'seed': self.seed,
-                'constructor': self.constructor_code,
-                'acc_test_acc': float(acc_test_acc),
-                'acc_test_loss': float(acc_test_loss),
-                'loss_test_acc': float(loss_test_acc),
-                'loss_test_loss': float(loss_test_loss),
-            }, file)
+        self.training_log[self.epochs] = {
+            'do_shuffle': do_shuffle,
+            'do_stratified': do_stratified,
+            'acc_test_acc': float(acc_test_acc),
+            'acc_test_loss': float(acc_test_loss),
+            'loss_test_acc': float(loss_test_acc),
+            'loss_test_loss': float(loss_test_loss),
+        }
+
+        with open(model_prefix + 'training_log.json', 'w') as log_file:
+            json.dump(self.training_log, log_file)
         
         print('Test acc: {a:.4f}'.format(a=acc_test_acc))
+
+        return acc_confusion_matrix, loss_confusion_matrix
