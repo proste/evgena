@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Sequence
 
 import numpy as np
 import tensorflow as tf
@@ -75,7 +75,7 @@ def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[in
     elif input_format == 'HWC':
         return (1, *shape)
     elif input_format == 'BHWC':
-        return (*shape)
+        return shape
     else:
         raise ValueError('Cannot resolve {!r} input format'.format(input_format))
 
