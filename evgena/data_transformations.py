@@ -1,7 +1,10 @@
+from typing import Tuple
+
 import numpy as np
 import tensorflow as tf
 
 
+# TODO add typing
 class _ImageAugmentation:
     def __init__(self):
         graph = tf.Graph()
@@ -48,25 +51,33 @@ def augment_images(augmentations, base_images):
     
     return _image_augmentation(augmentations, base_images)
 
-def images_to_BHWC(examples: np.ndarray, input_format: str = None) -> np.ndarray:
-    if (input_format is not None) and (len(input_format) != examples.ndim):
-        raise ValueError("input_format has different length from examples.ndim")
+def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[int]:
+    if (input_format is not None) and (len(input_format) != len(shape)):
+        raise ValueError('Cannot match input format with given shape')
+
+    if input_format is None:
+        if len(shape) == 2:            # single gray image
+            input_format = 'HW'
+        elif len(shape) == 3:
+            if shape[2] in [1, 3, 4]:  # hopefully single gray, RGB, RGBA image
+                input_format = 'HWC'
+            else:                      # multiple gray images
+                input_format = 'BHW'
+        elif len(shape) == 4:          # already BHWC
+            input_format = 'BHWC'
+        else:
+            raise ValueError('Cannot convert shape {!r}'.format(shape))
     
     if input_format == 'HW':
-        return examples.reshape(1, *examples.shape, 1)
+        return (1, *shape, 1)
     elif input_format == 'BHW':
-        return examples.reshape(*examples.shape, 1)
+        return (*shape, 1)
     elif input_format == 'HWC':
-        return exampels.reshape(1, *example.shape)
-    elif input_format is None:
-        if examples.ndim == 2:                  # single gray image
-            return examples.reshape(1, *examples.shape, 1)
-        elif examples.ndim == 3:
-            if examples.shape[2] in [1, 3, 4]:  # hopefully single gray, RGB, RGBA image
-                return examples.reshape(1, *examples.shape)
-            else:                               # multiple gray images
-                return examples.reshape(*examples.shape, 1)
-        elif examples.ndim == 4:                # already 4D BHWC
-            return examples
-        else:
-            raise ValueError("Invalid shape of examples")
+        return (1, *shape)
+    elif input_format == 'BHWC':
+        return (*shape)
+    else:
+        raise ValueError('Cannot resolve {!r} input format'.format(input_format))
+
+def images_to_BHWC(examples: np.ndarray, input_format: str = None) -> np.ndarray:
+    return examples.reshape(shape_to_BHWC(examples.shape, input_format))
