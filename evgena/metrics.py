@@ -156,11 +156,11 @@ class ConfusionMatrix:
 
     def _matrix_to_md(self, matrix, name, formatting):
         str_matrix = []
-        str_matrix.append([name] + map(str, self._label_names))
+        str_matrix.append([name] + list(map(str, self._label_names)))
         for label_name, row in zip(self._label_names, matrix):
             str_matrix.append([str(label_name)] + [('{:' + formatting + '}').format(item) for item in row])
 
-        column_widths = map(max, zip(*[map(len, row) for row in str_matrix]))
+        column_widths = list(map(max, zip(*[map(len, row) for row in str_matrix])))
 
         formatted_matrix = [
             [
