@@ -32,7 +32,7 @@ class Network:
         self.name = tag + '/' + '.'.join((
             datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
             'bs-{:04d}'.format(batch_size),
-            'lr-{:4f}'.format(learning_rate),
+            'lr-{:.4f}'.format(learning_rate),
             'seed-{}'.format(seed)
         ))
         self.training_log = {}
