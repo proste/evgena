@@ -81,3 +81,21 @@ def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[in
 
 def images_to_BHWC(examples: np.ndarray, input_format: str = None) -> np.ndarray:
     return examples.reshape(shape_to_BHWC(examples.shape, input_format))
+
+def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
+    if labels.ndim == 1:
+        decoded = np.zeros(shape=(len(labels), label_count), dtype=np.float32)
+        decoded[np.arange(len(labels)), labels] = 1
+        return decoded
+    elif labels.ndim == 2:
+        return labels
+    else:
+        raise ValueError('Invalid labels shape: {}'.format(labels.shape))
+
+def encode_labels(labels: np.ndarray) -> np.ndarray:
+    if labels.ndim == 1:
+        return labels
+    elif labels.ndim == 2:
+        return np.argmax(labels, axis=-1)
+    else:
+        raise ValueError('Invalid labels shape: {}'.format(labels.shape))

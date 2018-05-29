@@ -8,7 +8,8 @@ import numpy as np
 import tensorflow as tf
 
 from .dataset import Dataset
-from .data_transformations import images_to_BHWC, shape_to_BHWC
+from .data_transformations import \
+    images_to_BHWC, shape_to_BHWC, encode_labels, decode_labels
 from .metrics import ConfusionMatrix
 
 
@@ -123,7 +124,7 @@ class Network:
                 [self.training, self.summaries['train']],
                 {
                     self.images: images_to_BHWC(batch.X),
-                    self.labels: self._decode_labels(batch.y),
+                    self.labels: decode_labels(batch.y, self.labels_count),
                     self.is_training: True
                 }
             )
@@ -133,10 +134,10 @@ class Network:
     def _evaluate(self, split_name):
         if split_name == 'val':
             batch_generator = self.dataset.batch_over_val
-            gold_labels = self._encode_labels(self.dataset.val.y)
+            gold_labels = encode_labels(self.dataset.val.y)
         elif split_name == 'test':
             batch_generator = self.dataset.batch_over_test
-            gold_labels = self._encode_labels(self.dataset.test.y)
+            gold_labels = encode_labels(self.dataset.test.y)
         else:
             raise ValueError('Invalid dataset split name')
         
@@ -147,7 +148,7 @@ class Network:
                 [self.predictions, self.update_accuracy, self.update_loss],
                 {
                     self.images: images_to_BHWC(batch.X),
-                    self.labels: self._decode_labels(batch.y),
+                    self.labels: decode_labels(batch.y, self.labels_count),
                     self.is_training: False
                 }
             )
@@ -165,24 +166,6 @@ class Network:
 
         return acc, loss, confusion_matrix
     
-    def _decode_labels(self, labels: np.ndarray) -> np.ndarray:
-        if labels.ndim == 1:
-            decoded = np.zeros(shape=(len(labels), self.labels_count), dtype=np.float32)
-            decoded[np.arange(len(labels)), labels] = 1
-            return decoded
-        elif labels.ndim == 2:
-            return labels
-        else:
-            raise ValueError('Invalid labels shape: {}'.format(labels.shape))
-
-    def _encode_labels(self, labels: np.ndarray) -> np.ndarray:
-        if labels.ndim == 1:
-            return labels
-        elif (labels.ndim == 2) and (labels.shape[1] == self.labels_count):
-            return np.argmax(labels, axis=-1)
-        else:
-            raise ValueError('Invalid labels shape: {}'.format(labels.shape))
-
     def train(
         self, epochs: int,
         do_shuffle: bool = True, do_stratified: bool = True
