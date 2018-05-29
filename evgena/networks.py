@@ -28,8 +28,11 @@ class Network:
         self.learning_rate = learning_rate
         self.seed = seed
         self.constructor_code = inspect.getsource(constructor)
-        self.name = '.'.join((
-            datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'), tag
+        self.name = tag + '/' + '.'.join((
+            datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
+            'bs-{:04d}'.format(batch_size),
+            'lr-{:4f}'.format(learning_rate),
+            'seed-{}'.format(seed)
         ))
         self.training_log = {}
         self.epochs = 0
