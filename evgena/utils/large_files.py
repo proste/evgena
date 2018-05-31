@@ -16,7 +16,7 @@ lfs = [
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/mnist.npz.gz'
     ), (
         'datasets/fashion_mnist.npz',
-        'a3eddbc1cb7bc4172cdb5efa32554f75c93a3608baf7f6c63ea7018bee67282d',
+        '8ee9d9b3b2553914afd8f6d68d6a97af7616178f17994f3fc5b16717919d99cb',
         'http://www.ms.mff.cuni.cz/~prochas7/evgena/fashion_mnist.npz.gz'
     ), (
         'datasets/cifar_10.npz',
