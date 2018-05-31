@@ -11,13 +11,12 @@ class Dataset:
         return np.dtype([('id', np.int64), ('X', X.dtype, X.shape[1:]), ('y', y.dtype, y.shape[1:])])
     
     @staticmethod
-    def _examples_ids(X: np.ndarray, y: np.ndarray) -> np.ndarray:
+    def _examples_ids(X: np.ndarray) -> np.ndarray:
         example_count = len(X)
         ids = np.empty(shape=example_count, dtype=np.int64)
         
         for example_i in range(example_count):
             example_hash = md5(X[example_i].data)
-            example_hash.update(y[example_i].data)
             
             ids[example_i], _ = unpack('ll', example_hash.digest())  # use half of MD5 - sufficient
             
@@ -257,7 +256,7 @@ class Dataset:
             created dataset filled with (X, y) data
         
         """
-        ids = cls._examples_ids(X, y)
+        ids = cls._examples_ids(X)
         data = np.rec.fromarrays((ids, X, y), dtype=cls._example_dtype(X, y))
 
         train_test_edge = cls._balance_data(
@@ -302,8 +301,8 @@ class Dataset:
         
         train_X = np.concatenate((train_X, val_X))
         train_y = np.concatenate((train_y, val_y))
-        train_ids = cls._examples_ids(train_X, train_y)
-        test_ids = cls._examples_ids(test_X, test_y)
+        train_ids = cls._examples_ids(train_X)
+        test_ids = cls._examples_ids(test_X)
         
         train = np.rec.fromarrays((train_ids, train_X, train_y), dtype=example_dtype)
         test = np.rec.fromarrays((test_ids, test_X, test_y), dtype=example_dtype)
