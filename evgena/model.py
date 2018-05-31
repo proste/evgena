@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 import keras
 
-from evgena.data_transformations import images_to_BHWC
+from evgena.data_transformations import images_to_BHWC, decode_labels
 
 
 class Model(ABC):
@@ -86,6 +86,7 @@ class TfModel(Model):
     
     def gradients(self, inputs: np.ndarray, labels: np.ndarray) -> np.ndarray:
         inputs = images_to_BHWC(inputs)
+        labels = decode_labels(labels, self._labels.shape[-1])
         
         if self._gradients is None:
             return None
