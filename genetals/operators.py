@@ -156,23 +156,6 @@ class UniversalXover(XoverBase):
         o2[mask] = p2[mask]
 
 
-class UniversalXover(OperatorBase):
-    def __init__(self, parents_op: OperatorBase, xover_prob: float, axis: Union[int, Sequence[int]] = None):
-        super(UniversalXover, self).__init__(parents_op)
-
-        self._xover_prob = xover_prob
-        self._axis = axis if (not isinstance(axis, int)) else (axis,)
-
-    def _operation(self, ga: GeneticAlgorithm, parents: Population) -> Population:
-        offspring_genes = parents.genes.copy()
-        individual_shape = offspring_genes.shape[1:]
-
-        to_breed = 2 * np.random.permutation(int(population.size / 2))
-        to_breed = to_breed[:int(self._xover_prob * len(to_breed))]
-        for p_i in to_breed:
-            NotImplemented # offspring_genes[]
-
-
 class ShuffleOperator(OperatorBase):
     def __init__(self, input_op: OperatorBase):
         super(ShuffleOperator, self).__init__(input_op)
