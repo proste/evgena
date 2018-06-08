@@ -34,25 +34,6 @@ class TournamentSelection(OperatorBase):
         return Population(unfiltered.genes[chosen], ga)
 
 
-class OnePointXover(OperatorBase):
-    def __init__(self, parents_op: OperatorBase, xover_prob: float):
-        super(OnePointXover, self).__init__(parents_op)
-
-        self.xover_prob = xover_prob
-
-    # TODO maybe change
-    def _operation(self, ga: GeneticAlgorithm, parents: Population):
-        offspring_genes = parents.genes.copy()
-
-        for p_i in range(0, len(parents), 2):
-            edge = np.random.randint(parents.genes.shape[1])
-
-            offspring_genes[p_i, edge:, ...] = parents.genes[p_i + 1, edge:, ...]
-            offspring_genes[p_i + 1, edge:, ...] = parents.genes[p_i, edge:, ...]
-
-        return Population(offspring_genes, ga)
-
-
 class FlipMutation(OperatorBase):
     def __init__(self, original_op: OperatorBase, mut_prob: float, gene_mut_prob: float):
         super(FlipMutation, self).__init__(original_op)
@@ -111,9 +92,73 @@ class BiasedMutation(OperatorBase):
         return Population(mutated_genes, ga)
 
 
-class TwoPointXover(OperatorBase):
+class XoverBase(OperatorBase):
+    def __init__(
+        self, parents_op: OperatorBase, xover_prob: float,
+        axis: Union[int, Sequence[int]] = None
+    ):
+        super(XoverBase, self).__init__(parents_op)
+
+        self._xover_prob = xover_prob
+        self._axis = axis if (not isinstance(axis, int)) else (axis,)
+
+    def _operation(self, ga: GeneticAlgorithm, parents: Population) -> Population:
+        offspring_genes = parents.genes.copy()
+
+        xover_order = 2 * np.random.permutation(int(parents.size / 2))
+        to_xover = xover_order[:int(self._xover_prob * len(xover_order))]
+        for p_i in to_xover:
+            self._xover(
+                parents.genes[p_i], parents.genes[p_i + 1],
+                offspring_genes[p_i], offspring_genes[p_i + 1]
+            )
+
+        return Population(offspring_genes, ga)
+
+    def _xover(self, p1, p2, o1, o2) -> None:
+        pass
+
+
+class OnePointXover(XoverBase):
+    def _xover(self, p1, p2, o1, o2) -> None:
+        hyper_cube_bounds = [
+            slice(0, u_bound) if ((self._axis is not None) and (ax_i not in self.axis))
+            else slice(np.random.randint(0, u_bound), u_bound)
+            for ax_i, u_bount in enumerate(p1.shape)
+        ]
+
+        o1[hyper_cube_bounds] = p2[hyper_cube_bounds]
+        o2[hyper_cube_bounds] = p1[hyper_cube_bounds]
+
+
+class TwoPointXover(XoverBase):
+    def _xover(self, p1, p2, o1, o2) -> None:
+        hyper_cube_bounds = [
+            slice(0, u_bound) if ((self._axis is not None) and (ax_i not in self.axis))
+            else slice(*(np.sort(np.random.randint(0, u_bound, size=2))))
+            for ax_i, u_bound in enumerate(p1.shape)
+        ]
+
+        o1[hyper_cube_bounds] = p2[hyper_cube_bounds]
+        o2[hyper_cube_bounds] = p1[hyper_cube_bounds]
+
+
+class UniversalXover(XoverBase):
+    def _xover(self, p1, p2, o1, o2) -> None:
+        if self._axis is None:
+            mask_shape = p1.shape
+        else:
+            mask_shape = np.ones(shape=p1.ndim, dtype=np.int32)
+            mask_shape[self._axis] = np.array(p1.shape)[self._axis]
+        mask = np.random.choice([True, False], size=mask_shape)
+
+        o1[mask] = p2[mask]
+        o2[mask] = p2[mask]
+
+
+class UniversalXover(OperatorBase):
     def __init__(self, parents_op: OperatorBase, xover_prob: float, axis: Union[int, Sequence[int]] = None):
-        super(TwoPointXover, self).__init__(parents_op)
+        super(UniversalXover, self).__init__(parents_op)
 
         self._xover_prob = xover_prob
         self._axis = axis if (not isinstance(axis, int)) else (axis,)
@@ -122,17 +167,10 @@ class TwoPointXover(OperatorBase):
         offspring_genes = parents.genes.copy()
         individual_shape = offspring_genes.shape[1:]
 
-        for p_i in range(0, parents.size, 2):
-            hyper_cube_bounds = [
-                slice(0, u_bound) if ((self._axis is not None) and (i not in self._axis))
-                else slice(*(np.sort(np.random.randint(0, u_bound, size=2))))
-                for i, u_bound in enumerate(individual_shape)
-            ]
-
-            offspring_genes[[p_i] + hyper_cube_bounds] = parents.genes[[p_i + 1] + hyper_cube_bounds]
-            offspring_genes[[p_i + 1] + hyper_cube_bounds] = parents.genes[[p_i] + hyper_cube_bounds]
-
-        return Population(offspring_genes, ga)
+        to_breed = 2 * np.random.permutation(int(population.size / 2))
+        to_breed = to_breed[:int(self._xover_prob * len(to_breed))]
+        for p_i in to_breed:
+            NotImplemented # offspring_genes[]
 
 
 class ShuffleOperator(OperatorBase):
