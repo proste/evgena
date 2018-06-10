@@ -15,33 +15,33 @@ class _ImageAugmentation:
             graph=graph,
             config=config
         )
-        
+
         with graph.as_default():
             # input placeholders
             self.augmentations = tf.placeholder(tf.float32, [None, None, None, 1], name='augmentations')
             self.base_images = tf.placeholder(tf.float32, [None, None, None, 1], name='base_images')  # TODO link dimensions??
-            
+
             # resize augmentations to match images
             resized_augmentations = tf.image.resize_images(
                 self.augmentations, tf.shape(self.base_images)[1:3],
                 method=tf.image.ResizeMethod.BILINEAR, align_corners=True
             )
-            
+
             # add together with augmentations reshaped
             self.augmented_images = tf.clip_by_value(
                 self.base_images + tf.expand_dims(resized_augmentations, 1), 0.0, 1.0
             )
 
     def __call__(self, augmentations, base_images):
-        augmentations = images_to_BHWC(augmentations)        
+        augmentations = images_to_BHWC(augmentations)
         base_images = images_to_BHWC(base_images)
-        
+
         return self.session.run(
             self.augmented_images,
             feed_dict={self.augmentations: augmentations, self.base_images: base_images}
         )
 
-    
+
 _image_augmentation = None
 def augment_images(
     augmentations: np.ndarray, base_images: np.ndarray, batch_size: int = -1
@@ -96,7 +96,7 @@ def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[in
             input_format = 'BHWC'
         else:
             raise ValueError('Cannot convert shape {!r}'.format(shape))
-    
+
     if input_format == 'HW':
         return (1, *shape, 1)
     elif input_format == 'BHW':
@@ -128,3 +128,4 @@ def encode_labels(labels: np.ndarray) -> np.ndarray:
         return np.argmax(labels, axis=-1)
     else:
         raise ValueError('Invalid labels shape: {}'.format(labels.shape))
+
