@@ -33,7 +33,6 @@ class _ImageAugmentation:
             )
 
     def __call__(self, augmentations, base_images):
-        # TODO re-create session every time?
         augmentations = images_to_BHWC(augmentations)        
         base_images = images_to_BHWC(base_images)
         
@@ -44,12 +43,42 @@ class _ImageAugmentation:
 
     
 _image_augmentation = None
-def augment_images(augmentations, base_images):
+def augment_images(
+    augmentations: np.ndarray, base_images: np.ndarray, batch_size: int = -1
+) -> np.ndarray:
+    """Additively augment images
+
+    Parameters
+    ----------
+    augmentations : np.ndarray
+        array of size XHWC in [0.0, 1.0], where X is number of augmentations
+    base_images : np.ndarray
+        array of size YHWC in [0.0, 1.0], where Y is number of images to be augmented
+    batch_size : int
+        take at most batch_size augmentations at a time; default -1 for no batching
+
+    Returns
+    -------
+    np.ndarray
+        array of size XYHWC in [0.0, 1.0], where [X, Y] is image Y augmented with X
+
+    """
     global _image_augmentation
     if _image_augmentation is None:
         _image_augmentation = _ImageAugmentation()
-    
-    return _image_augmentation(augmentations, base_images)
+
+    if batch_size < 0:  # no batching
+        return _image_augmentation(augmentations, base_images)
+    else:               # batching
+        results = []
+        for batch_begin in range(0, len(augmentations), batch_size):
+            batch_end = batch_begin + batch_size
+            results.append(_image_augmenation(
+                augmentations[batch_begin:batch_end], base_images
+            ))
+
+        return np.concatenate(results)
+
 
 def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[int]:
     if (input_format is not None) and (len(input_format) != len(shape)):
