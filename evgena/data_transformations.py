@@ -81,6 +81,27 @@ def augment_images(
 
 
 def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[int]:
+    """Deduce BHWC normalized shape
+
+    If auto-deduction used, the rules are following:
+        [x, y] -> 'HW'
+        [x, y, (1|3|4)] -> 'HWC'
+        [x, y, ^(1|3|4)] -> 'BHW'
+        [w, x, y, z] -> 'BHWC'
+
+    Parameters
+    ----------
+    shape : Sequence[int]
+        shape to be normalized
+    input_format : {'HW', 'HWC', 'BHW', 'BHWC'}, optional
+        format of shape to be normalized; defaults to None ie. auto-deduce
+
+    Returns
+    -------
+    Sequence[int]
+        BHWC normalized shape
+
+    """
     if (input_format is not None) and (len(input_format) != len(shape)):
         raise ValueError('Cannot match input format with given shape')
 
@@ -108,8 +129,27 @@ def shape_to_BHWC(shape: Sequence[int], input_format: str = None) -> Sequence[in
     else:
         raise ValueError('Cannot resolve {!r} input format'.format(input_format))
 
+
 def images_to_BHWC(examples: np.ndarray, input_format: str = None) -> np.ndarray:
+    """Reshapes examples to BHWC format
+
+    Equivalent to examples.reshape(shape_to_BHWC(examples.shape, input_format)) call
+
+    Parameters
+    ----------
+    examples : np.ndarray
+        examples to be reshaped
+    input_format : str
+        see ``shape_to_BHWC`` for more info
+
+    Returns
+    -------
+    np.ndarray
+        view of ``examples`` with BHWC normalized shape
+
+    """
     return examples.reshape(shape_to_BHWC(examples.shape, input_format))
+
 
 def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
     if labels.ndim == 1:
@@ -121,6 +161,7 @@ def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
     else:
         raise ValueError('Invalid labels shape: {}'.format(labels.shape))
 
+
 def encode_labels(labels: np.ndarray) -> np.ndarray:
     if labels.ndim == 1:
         return labels
@@ -128,4 +169,3 @@ def encode_labels(labels: np.ndarray) -> np.ndarray:
         return np.argmax(labels, axis=-1)
     else:
         raise ValueError('Invalid labels shape: {}'.format(labels.shape))
-
