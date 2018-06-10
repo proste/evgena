@@ -152,6 +152,23 @@ def images_to_BHWC(examples: np.ndarray, input_format: str = None) -> np.ndarray
 
 
 def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
+    """Decodes labels if needed
+
+    Parameters
+    ----------
+    labels : np.ndarray
+        array of possibly one-hot encoded labels
+            - 1D for one-hot encoded labels
+            - 2D for sparse labels - does nothing
+    label_count : int
+        number of labels to be used in one-hot decoding
+
+    Returns
+    -------
+    np.ndarray
+        decoded labels of shape len(labels) x label_count
+
+    """
     if labels.ndim == 1:
         decoded = np.zeros(shape=(len(labels), label_count), dtype=np.float32)
         decoded[np.arange(len(labels)), labels] = 1
@@ -163,6 +180,21 @@ def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
 
 
 def encode_labels(labels: np.ndarray) -> np.ndarray:
+    """Encodes labels if needed
+
+    Parameters
+    ----------
+    labels : np.ndarray
+        array of possibly sparse labels
+            - 1D for one-hot encoded labels - does nothing
+            - 2D for sparse labels
+
+    Returns
+    -------
+    np.ndarray
+        one-hot encoded labels
+
+    """
     if labels.ndim == 1:
         return labels
     elif labels.ndim == 2:
