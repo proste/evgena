@@ -1,25 +1,25 @@
-import contextlib
-from typing import Callable
-
-__all__ = ['maybe_open', 'copyfileobj']
+from typing import Callable, IO
 
 
-@contextlib.contextmanager
-def maybe_open(path_or_fp, *args, **kwargs):
-    if isinstance(path_or_fp, str):
-        f = file_to_close = open(path_or_fp, *args, **kwargs)
-    else:
-        f = path_or_fp
-        file_to_close = None
+def copyfileobj(
+    fsrc: IO, fdst: IO, length: int = 65536,
+    callback[[int], None]: Callable = None
+) -> None:
+    """Copies data between file-like objects
 
-    try:
-        yield f
-    finally:
-        if file_to_close:
-            file_to_close.close()
+    Parameters
+    ----------
+    fsrc : IO
+        file-like source
+    fdst : IO
+        file-like destination
+    length : int
+        size of buffer to use during copy
+    callback : Callable[[int], None]
+        optional function called after each chunk is processed;
+        number of already copied bytes is passed to the function
 
-
-def copyfileobj(fsrc, fdst, length: int = 65536, callback: Callable =None):
+    """
     copied = 0
     while True:
         buf = fsrc.read(length)
