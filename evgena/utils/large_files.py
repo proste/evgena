@@ -2,6 +2,7 @@ import os
 import gzip
 import urllib
 import hashlib
+
 from .file_system import copyfileobj
 
 
@@ -29,9 +30,18 @@ lfs = [
 def file_sha256(file_path: str, chunk_size: int = 65536) -> str:
     """Computes sha256 hash of file
 
-    :param file_path: path to file
-    :param chunk_size: size in bytes to be read at a time, -1 for reading whole contents
-    :return: sha256 hash as a hex string
+    Parameters
+    ----------
+    file_path : str
+        path to file
+    chunk_size : int
+        size in bytes to be read at a time, -1 for reading whole contents
+
+    Returns
+    -------
+    str
+        sha256 hash as a hex string
+
     """
     assert chunk_size != 0,\
         'chunk_size must not equal 0'
@@ -48,6 +58,19 @@ def file_sha256(file_path: str, chunk_size: int = 65536) -> str:
 
 
 def maybe_download(file_path: str) -> str:
+    """Downloads file if necessary
+
+    Parameters
+    ----------
+    file_path : str
+        file to be maybe downloaded
+
+    Returns
+    -------
+    str
+        file_path
+
+    """
     abs_path = os.path.abspath(file_path)
 
     for rel_path, checksum, url in lfs:
@@ -65,6 +88,3 @@ def maybe_download(file_path: str) -> str:
             return file_path
 
     raise FileNotFoundError('{!r} is not recognized large file'.format(file_path))
-
-
-# TODO how to get root dir of package??, force usage from root
