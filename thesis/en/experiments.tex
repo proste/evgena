@@ -1,1 +1,19 @@
 \chapter{Experiments}
+Experiments will be carried out for those scenarios:
+\begin{itemize}
+\item FGSM (white-box, target model)
+\item FGSM (surrogate, different seed model)
+\item FGSM (surrogate, teacher-student model)
+\item FGSM (surrogate, specific binary teacher-student model)
+\item EA (black-box, pure EA)
+\item hybrid (surrogate, EA + pre-trained surrogate)
+\item hybrid (surrogate, EA + on-demand-trained surrogate)
+\end{itemize}
+
+Each combination of following options will be tested:
+\begin{itemize}
+\item targeted vs non-targeted
+\item single image vs multi-image vs generalization (unseen images)
+\end{itemize}
+
+Each experiment will be cross-validated using 14-fold cross-validation.
