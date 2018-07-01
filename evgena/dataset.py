@@ -1,6 +1,6 @@
 from hashlib import md5
 from struct import unpack
-from typing import Mapping, Iterator
+from typing import Mapping, Iterator, Generator
 
 import numpy as np
 
@@ -152,7 +152,38 @@ class Dataset:
             np.concatenate(tests).view(np.recarray),
             train_val_edge=train_val_edge, metadata=joint_metadata
         )
-    
+
+    @classmethod
+    def k_fold_cross_validation(
+            cls, dataset: 'Dataset', k_folds: int,
+            do_shuffle: bool = True, do_stratified: bool = True
+    ) -> Generator['Dataset', None, None]:
+        # TODO deep copy
+        dataset = Dataset.from_splits(
+            dataset.train.X, dataset.train.y,
+            dataset.val.X, dataset.val.y,
+            dataset.test.X, dataset.test.y,
+            metadata=dataset.metadata
+        )
+
+        fold_size = len(dataset._train) // k_folds
+        dataset._train_val_edge = (k_folds - 1) * fold_size
+
+        if do_shuffle or do_stratified:
+            dataset._train = dataset._train[cls._create_ordering(
+                dataset._train.y, do_shuffle=do_shuffle, do_stratified=do_stratified
+            )]
+
+        folds = [dataset._train[(k * fold_size):((k+1) * fold_size)] for k in range(k_folds)]
+
+        yield dataset
+        for k in range(k_folds - 1):
+            swap = folds[-1].copy()
+            folds[-1][:] = folds[k]
+            folds[k][:] = swap
+
+            yield dataset
+
     @classmethod
     def sub_dataset(cls,
         super_dataset: 'Dataset',
