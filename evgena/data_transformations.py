@@ -151,22 +151,22 @@ def images_to_BHWC(examples: np.ndarray, input_format: str = None) -> np.ndarray
     return examples.reshape(shape_to_BHWC(examples.shape, input_format))
 
 
-def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
-    """Decodes labels if needed
+def encode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
+    """One-hot encodes labels if needed
 
     Parameters
     ----------
     labels : np.ndarray
-        array of possibly one-hot encoded labels
-            - 1D for one-hot encoded labels
-            - 2D for sparse labels - does nothing
+        array of possibly sparse labels
+            - 1D for sparse labels
+            - 2D for one-hot encoded labels - does nothing
     label_count : int
-        number of labels to be used in one-hot decoding
+        number of labels to be used in one-hot encoding
 
     Returns
     -------
     np.ndarray
-        decoded labels of shape len(labels) x label_count
+        encoded labels of shape len(labels) x label_count
 
     """
     if labels.ndim == 1:
@@ -179,20 +179,20 @@ def decode_labels(labels: np.ndarray, label_count: int) -> np.ndarray:
         raise ValueError('Invalid labels shape: {}'.format(labels.shape))
 
 
-def encode_labels(labels: np.ndarray) -> np.ndarray:
-    """Encodes labels if needed
+def decode_labels(labels: np.ndarray) -> np.ndarray:
+    """Decodes labels if needed
 
     Parameters
     ----------
     labels : np.ndarray
-        array of possibly sparse labels
-            - 1D for one-hot encoded labels - does nothing
-            - 2D for sparse labels
+        array of possibly one-hot encoded labels
+            - 1D for sparse labels - does nothing
+            - 2D for one-hot encoded labels
 
     Returns
     -------
     np.ndarray
-        one-hot encoded labels
+        sparse labels
 
     """
     if labels.ndim == 1:
