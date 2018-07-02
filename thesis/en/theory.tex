@@ -25,12 +25,53 @@ TODO Overview - AI, ML, Optimization, Search - context and structure
 An~example citation: \cite{Andel07}
 
 \section{Classification Tasks in Computer Vision}
-TODO datasets and their properties
+The field of computer vision, sometimes percieved as a part of the artificial intelligence, examines the machine processing of imaging data. The basics of the field were laid down in the 1960s, the golden years of artificial intelligence, with ambitious goal to build systems with universal understanding of visual concepts. A multitude of subtasks of this ultimate goal were solved to a large extent; however the task as a whole remains to be solved at the time of writing. The computer vision is experiencing boom once again with the advent of deep learning and GPU accelerated computation.
+
+TODO early works in CV - preset convolution filters, HOG
+Early works in computer vision were mostly based on deterministic algorithms. (TODO 2D convolution, fourier transformation for denoising (band pass filters), HOG for detection, matching etc, eigenfaces)
+
+Based on previous approaches in CV, such as use of convolutional filters, in conjunction with increasing computational power and advancements in machine learning, such as reinvention of gradient backpropagation, the convolutional neural networks emerged (see \ref{sec:deep_learning}). Those models outperformed former state of the art methods i.e., SVMs with RBF kernels or SIFT with Fisher vectors, in terms of accurracy (\cite{NIPS2012_4824}) and enabled wider range of tasks to be solved. The tasks that are being solved by CNNs in CV are image classification, object detection, semantic segmentation, image generation, style transfer, image captioning, etc. We will elaborate more on image classification tasks, available datasets and respective state of the art results.
+
+TODO list of symbols and definitions
+
+\subsection{Task Definition}
+The task of image classification lies in assigning one and only one label $l$ from the set of possible output labels $L$ to each input image $I$ from the space of all possible images $\mathbf{I}$ of which we often think as a unit hypercube i.e., $[0,1]^{h \cdot w \cdot c}$ with $h$, $w$, $c$ being input images height, width and number of channels (depth) respectively. Task with input varying in shape can be transformed to the canonical classification task by adding preprocessing step which unifies shape e.g., reshaping using bilinear interpolation (TODO reference?) or conversion to common colour space (TODO reference?), or by building a multitude of solutions, each targeted at specific shape of input data.
+
+\subsection{MNIST like tasks}
+The whole family of datasets for benchmarking of image classification solutions has been created. For the sake of interchangeability all of them share the same input size of $28 \times 28 \times 1$ (rectangular grayscale image) and often same dataset size and structure with 60,000 training and 10,000 testing examples. (TODO note on MNIST being obsolete, emnist not much used (dataset structure incompatibility), fashion mnist not known that much, but small and enable fast experiments)
+
+\paragraph{MNIST}
+
+The MNIST dataset comprises of handwritten digits. It is a selected subset of the Modified National Institute of Standards and Technology database. The database consists of approximately 800,000 handwritten alphanumeric characters written by 3600 writers, namely high school students and United States Census Bureau employees (TODO ref https://www.nist.gov/srd/nist-special-database-19). The subset has been chosen so that each dataset split consists of the amount of samples written by students compared to Census Bureau employees is equal. Moreover the sets of writers chosen for training samples and testing samples are disjoint. The chosen samples are normalized with following steps -- each character is reshaped to fit $20 \times 20px$ patch preserving the aspect ratio and the center of mass of this patch is aligned with the center of larger $28 \times 28px$ patch creating final sample. The classification accuracy of over 99\% was reached by \cite{Lecun98gradient-basedlearning} and their LeNet model. Due to increasing capabilities of machine learning approaches, MNIST became obsolete simple nature of MNIST task from today's point of view it is no longer a valid benchmarking dataset for performance comparison.
+
+TODO image
+
+\paragraph{EMNIST}
+
+The Extended MNIST (EMNIST) dataset contains alphanumeric characters and consequently is seen as extension of the MNIST dataset. It comes from the same database and was created mimicking the steps used for MNIST sample preprocessing. However, the procedure differs sligtly and consequently MNIST is not a subset of EMNIST. The dataset comes in several layouts. The EMNIST Complere consists of approximately 700,000 training samples and 115,000 testing samples each classified to one of 62 classes (10 digits, 26 lower-case and 26 upper-case letters). The EMNIST Merge is a variation of the complete EMNIST with visually ambigous letter classes e.g., C, K, P, S (TODO italics?) merged, leading to 47 classes in total. The EMNIST Balanced comprises of 112,800 training and 18,800 testing samples in 47 classes (using merging), with equal sample frequency across classes. Appart from those datasets, there are EMNIST Digits, EMNIST Letters and EMNITS MNIST, dataset sharing the layout of original MNIST dataset. \cite{DBLP:journals/corr/CohenATS17}
+
+TODO numbers in math mode?
+
+\paragraph{Fashion MNIST}
+
+The Fashion MNIST dataset contains 
+TODO content, reference
+
+% TODO train and use WRN-28-10 as a fashion mnist model
+
+\subsection{CIFAR}
+- 10/100
+
+\subsection{ImageNet}
+- ILSVRC etc.
 
 \section{Deep Learning in Image Classification}
+\label{sec:deep_learning}
+- machine learning
+- deep learning
 
-\section{Evolutionary Algorithms as Generative Method}
-TODO 
+\section{Evolutionary Algorithms as Space Search Algorithm}
+TODO Engelbrecht
 
 \section{Adversarial Examples for Deep Learning Models}
 TODO topology - black/white box, iterative/single-shot, targeted/non-targeted
