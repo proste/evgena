@@ -16,4 +16,33 @@ Each combination of following options will be tested:
 \item single image vs multi-image vs generalization (unseen images)
 \end{itemize}
 
-Each experiment will be cross-validated using 14-fold cross-validation.
+Each experiment will be cross-validated using 10-fold cross-validation.
+
+Architectures
+- Simple CNN - 3 cnn layers with max-pooling and one hidden dense layer
+- DenseNet-BC-8-52
+
+Datasets
+- Fashion MNIST
+- Cifar-10?
+
+experiments on test set - unseen data - common scenario in real world
+FGSM white-box, target model - confidence bound 0.5 (0.???)
+- whole test set, targeted/non-targeted, single-image
+- multi-image??
+- outcomes (metrics) ??
+    - mean/std/quantiles of step count for iterative FGSM ?
+    - mean/std/quantiles of added noise? (MSE?)
+    - rate of success (will be close to 1)
+    - time ?
+    - some examples? which ones (unsuccessfull ones if any?)
+FGSM surrogate (different seed)
+- cross-validation folds cross comparison (whole/partial?)
+FGSM surrogate (teacher-student)
+- how to train - same splits as teacher? validation and test label distributions differs from train
+FGSM surrogate (binary teacher-student)
+- full? app 1000 models
+EA (black-box, pure EA)
+- what to try?
+hybrid
+- dtto
