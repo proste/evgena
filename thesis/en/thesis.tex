@@ -35,6 +35,8 @@
 \usepackage{lmodern}
 
 %% Further useful packages (included in most LaTeX distributions)
+\usepackage{algorithmic}
+\usepackage{algorithm}
 \usepackage{amsmath}        % extensions for typesetting of math
 \usepackage{amsfonts}       % math fonts
 \usepackage{amsthm}         % theorems, definitions, etc.
@@ -43,6 +45,8 @@
 \usepackage{graphicx}       % embedding of pictures
 \usepackage{fancyvrb}       % improved verbatim environment
 \usepackage{natbib}         % citation style AUTHOR (YEAR), or AUTHOR [NUMBER]
+\usepackage{url}            % url citation with its setting
+\renewcommand{\UrlFont}{\small\tt}
 \usepackage[nottoc]{tocbibind} % makes sure that bibliography and the lists
 			    % of figures/tables are included in the table
 			    % of contents
@@ -83,7 +87,7 @@
 % An optional dedication: you can thank whomever you wish (your supervisor,
 % consultant, a person who lent the software, etc.)
 \def\Dedication{%
-TODO Dedication.
+To whom it may concern, Thank You. % TODO center ??
 }
 
 % Abstract (recommended length around 80-200 words; this is not a copy of your thesis assignment!)
@@ -116,7 +120,7 @@ TODO Abstract.
 %%% Each chapter is kept in a separate file
 \include{preface}
 \include{theory}
-\include{sota}
+\include{advex}
 \include{solution}
 \include{experiments}
 
@@ -135,6 +139,7 @@ TODO Abstract.
 %%% Abbreviations used in the thesis, if any, including their explanation
 %%% In mathematical theses, it could be better to move the list of abbreviations to the beginning of the thesis.
 \chapwithtoc{List of Abbreviations}
+TODO??
 
 %%% Attachments to the bachelor thesis, if any. Each attachment must be
 %%% referred to at least once from the text of the thesis. Attachments
@@ -149,9 +154,7 @@ TODO Abstract.
 %%% Allowed file formats are specified in provision of the rector no. 72/2017.
 \appendix
 \include{user_doc}
-\chapter{Attachments}
-
-\section{First Attachment}
+TODO??
 
 \openright
 \end{document}

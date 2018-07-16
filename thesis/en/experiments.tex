@@ -1,10 +1,123 @@
 \chapter{Experiments}
+
+In order to empirically assess the performance of proposed solutions we have carried out a multitude of experiments on the Fashion MNIST dataset. This particular dataset was chosen for it is simple enough to enable thorough examination of various scenarios using k-fold cross-validation and measurements of results on statistically significant number of examples (often whole Fashion MNIST test set), yet more complex then MNIST and the like (\ref{subsec:mnist_tasks}). Following the results of Fashion MNIST benchmark (\cite{FASHION_BENCH}) we have chosen two high scoring model architectures of varying nature -- namely:
+
+\begin{description}
+    \item[SimpleNet]
+Simple wide shallow network with three convolutional layers of depth 32, 64 and 128 respectively and one hidden dense layer of size 128. Each convolutional layer uses square kernel of size 3 and stride 1 with \textit{same} padding and is followed by batch normalization and ReLU activation. Max pooling with kernel of size 2 and stride 2 is added in-between each pair of convolutions for subsampling. Flattened output of last convolutional layer is followed by ReLU activated hidden dense layer and final output layer of size corresponding to the number of classes. Dropout with rate $0.3$ is added after each max pooling and in front of hidden and output dense layers. Model is trained with Adam optimizer (\cite{DBLP:journals/corr/KingmaB14}) with default (recommended) parameters for 128 epochs. Initial learning rate $0.001$ is divided by 5 in $50\%$ and $75\%$ of training process. To the best of our knowledge the name \textit{SimpleNet} does not refer to any well-known model architecture and was chosen for easier distinction of used architectures when refering to them. Whole model has approximately 900k trainable parameters.
+    \item[DenseNet]
+Specifically \textit{DenseNet-BC} of depth $52$ with growth rate $k=8$ and 0.5 compression factor, representing deep narrow convolutional network. Dropout of rate 0.2 is used as proposed by authors as well as recommended training parameters i.e., SGD with Nesterov momentum of 0.9 and learning rate of 0.1 divided by 10 in $50\%$ and $75\%$ of training process which takes, again, 128 epochs. Whole model has approximately 120k trainable parameters. See \cite{DBLP:journals/corr/HuangLW16a}.
+\end{description}
+Both models use weight decay of 0.0001 as additional regularization method as well as standard input preprocessing - mean subtraction and standard deviation division with channel-wise precomputed moments on training data (TODO citation). Batch size of 128 is used during training and no early stopping method is employed.
+
+\begin{figure}
+\centering
+\begin{tabular}{@{}c@{}}
+    \includegraphics[width=.64\textwidth]{../img/training.pdf}
+    \includegraphics[width=.3\textwidth]{../img/models_test.pdf} \\
+    \includegraphics[width=.48\textwidth]{../img/simplenet_cm.pdf}
+    \includegraphics[width=.48\textwidth]{../img/densenet_cm.pdf}  \\
+\end{tabular}
+\caption{Cross validated training results}
+\label{fig:training}
+\end{figure}
+
+Training of both architectures is carried out using stratified 10-fold cross-validation resulting in 20 target models trained with varying random initialization on differing training sets. From the test set accuracy boxplot \ref{fig:training}, we can see that densenet outperforms simplenet by approximately $0.8\%$. The confusion matrices of median models are very similar for both architectures.
+
+\paragraph{Experiments overview}
+
+In the following sections we are going to examine following approaches towards generating adversarial examples for image classifiers.
+
+Firstly, white-box fast gradient sign method attack serving as both implementation sanity check and baseline is carried out. Next the transferability of adversarial examples is examined using surrogate models. Those approaches include transfering adversarial examples between models trained on the same dataset -- the most naive approach, training surrogate model on outputs of target model and finally training focused surrogate models as a binary classifiers for specific classification category in one-vs-all manner. For each approach based on use of surrogate models, the transferability of adversarial examples between models of the same architecture as well as models of differing architectures is assessed. Appart from pure gradient methods, evolutionary algorithms are employed as a space search method, generating adversarial examples for target model. Finally using both gradient based methods and heuristic space search together, the performance of hybrid methods is measured.
+
+For some experiments one \textit{SimpleNet} and one \textit{DenseNet} model is chosen, taking median models with respect to accuracy, we will refer to them as \textit{median SimpleNet/DenseNet}. In the same manner a single class is chosen, median in terms of model prediction accuracy and attack performance, for use in some experiments -- this proves to be the \textit{dress} class for Fashion MNIST dataset.
+
+Each approach is tested under combination of following conditions - either non-targeted and targeted attack to each class is carried out, while at the same time generating single or universal adversarial pattern is tested. Attack is constrained  to a maximum of 0.1 pixel-wise difference between targeted and adversarial examples, which corresponds approximately to 26 shades of gray difference in either direction.
+
+\section{Fast Gradient Sign Method Approaches}
+Iterative FGSM is applied to each example in Fashion MNIST test set. FGSM with step size of $\frac{1}{255}$ is used, which corresponds to shift by one shade of grey in resulting adversarial example. The following experiments compare adversarial attack performance for various model architectures, target model knowledge available to adversary and character istics of the attack itself.
+
+\subsection{White-Box Attack}
+The white-box iterative FGSM is run against the target models directly. Following box plots show the distribution of the number of steps (\textit{y-axis}) needed to be taken to obtain adversarial example from source label (\textit{x-axis}) to target (\textit{plot title}), those results are collected on the whole Fashion MNIST test set using cross validated target models i.e., for each class -- architecture pair, the median step count for each test set example is taken, resulting in $1000$ datapoints. Only valid datapoints i.e., those representing successfully generated adversarial examples are used to render each box. Presented heatmaps than show success rate of attack for each source -- target label pair for given architecture (\textit{plot title}). Blank cell in heatmap represents maximal possible value i.e., 1000.
+
+\paragraph{Singleton}
+
+Following from presented results \ref{fig:fgsm_white_box} we can see that white box attack against single example proves to be successful in both targeted and non-targeted scenarios for each examined architecture. \textit{Simplenet} architecture proves to be slightly more resilient both in terms of success rate and iterative FGSM step count. Consulting confusion matrix of targeted models, more confused classes are easier to attack in non-targeted scenario. In targeted attack the distribution of step count approximately corresponds to the distribution of targeted class confusion (column \textit{dress} in confusion matrices).
+
+\begin{figure}
+\centering
+\begin{tabular}{@{}cc@{}}
+    \includegraphics[width=.48\textwidth]{../img/experiments_fgsm_direct_non_targeted_single.pdf} &
+    \includegraphics[width=.48\textwidth]{../img/experiments_fgsm_direct_simplenet_single_cm.pdf} \\
+    \includegraphics[width=.48\textwidth]{../img/experiments_fgsm_direct_targeted_3_single.pdf}   &
+    \includegraphics[width=.48\textwidth]{../img/experiments_fgsm_direct_densenet_single_cm.pdf}  \\
+\end{tabular}
+\caption{FGSM White-box}
+\label{fig:fgsm_white_box}
+\end{figure}
+
+\paragraph{Universal}
+
+\subsection{Surrogate attack}
+Following experiment explores the transferability of adversarial examples using surrogate models. We compare the performance of following four scenarios.
+
+\begin{description}
+\item[plain] surrogate model is model trained on the same dataset (not necessarily using the same train, validation splitting) \ref{fig:plain_surrogate}
+\item[full] surrogate model is trained to fit output probability distribution of targeted model using whole training dataset \ref{fig:full_surrogate}
+\item[reduced] is similar to \textit{full} surrogate, except for being trained only on a fraction of training data to mimic limited ability to call targeted model (when obtaining output probability distribution) \ref{fig:reduced_surrogate}
+\item[binary] surrogate model is similar to \textit{full} surrogate in terms of data size, but is trained as a binary classifier between one chosen class and all other classes, allowing for targeted attack to selected class and non-targeted attack from it \ref{fig:binary_surrogate}
+\end{description}
+Appart from varying approaches towards surrogate training, we compare performance of surrogates being of the same architecture versus differing architecture from the targeted model.
+From attached plots (\ref{fig:plain_surrogate}, \ref{fig:full_surrogate}, \ref{fig:reduced_surrogate}, \ref{fig:binary_surrogate}), we can see that
+
+TODO turn bullet list into paragraphs??, evidence for feature reuse?
+\begin{itemize}
+\item \textit{SimpleNet} is more resilient to attacks than \textit{DenseNet} (left column of plots scoring lower values than right column), we assume that this might be caused by extensive feature reuse in case of \textit{DenseNet} -- tampering with some feature influence prediction of multiple classes (those dependent on the modified feature)
+\item it is easier to generate adversarial examples among visually similar classes -- types of shoes (\textit{sneaker, sandal, ankle boot}), clothes covering the chest (\textit{dress, coat, pullover, t-shirt/top}), while class unlike any other (\textit{trouser}) is resilient to adversarial attack; from this point of view, \textit{bag} category might seem as an outlier, being very easily attacked -- we think this might be again caused by feature reuse, as from the point of visual similarity, it is close to both shoes and pieces of clothes
+\item asymmetry in performance of cross architecture attacks is interesting phenomenon, with \textit{DenseNet} target model attacked by \textit{SimpleNet} surrogate being far more successful than its counterpart; same architecture attack, on the other hand proves to be successful in both cases, outperforming cross architecture attacks; this again may be caused by feature reuse with \textit{DenseNet} with more categore independent features unable to attack \textit{SimpleNet} with more category dependent features
+\item comparable performance of plain surrogates (trained on the whole dataset, unaware of target model distribution) and reduced surrogates (trained on reduced dataset, aware of target model) both inferior to full surrogates (trained on the whole dataset, aware of target model) which confirms that both increasing amount of data and increasing knowledge about targeted model improve succes rate of adversarial attack
+\end{itemize}
+
+TODO place plots before analysis? to backreference??
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.95\textwidth]{../img/experiments_fgsm_plain_surrogate__single__cm.pdf}
+    \caption{Plain surrogate success rate}
+    \label{fig:plain_surrogate}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.95\textwidth]{../img/experiments_fgsm_full_surrogate__single__cm.pdf}
+    \caption{Full surrogate success rate}
+    \label{fig:full_surrogate}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.95\textwidth]{../img/experiments_fgsm_full_surrogate_reduced__single__cm.pdf}
+    \caption{Reduced surrogate success rate}
+    \label{fig:reduced_surrogate}
+\end{figure}
+
+% TODO merge into single figure? or two based on target, place dress->any to dress->dress place?
+
+\begin{figure}
+    \centering
+    %\includegraphics[width=\textwidth]{../img/experiments_fgsm_binary_surrogate__single__cm.pdf}
+    \begin{tabular}{@{}c@{}}
+        \includegraphics[width=.24\textwidth]{../img/experiments_fgsm_binary_surrogate_simplenet_single_simplenet_cm.pdf}
+        \includegraphics[width=.24\textwidth]{../img/experiments_fgsm_binary_surrogate_simplenet_single_densenet_cm.pdf}
+        \includegraphics[width=.24\textwidth]{../img/experiments_fgsm_binary_surrogate_densenet_single_simplenet_cm.pdf}
+        \includegraphics[width=.24\textwidth]{../img/experiments_fgsm_binary_surrogate_densenet_single_densenet_cm.pdf}  \\
+    \end{tabular}
+    \caption{Binary surrogate success rate}
+    \label{fig:binary_surrogate}
+\end{figure}
+
 Experiments will be carried out for those scenarios:
 \begin{itemize}
-\item FGSM (white-box, target model)
-\item FGSM (surrogate, different seed model)
-\item FGSM (surrogate, teacher-student model)
-\item FGSM (surrogate, specific binary teacher-student model)
 \item EA (black-box, pure EA)
 \item hybrid (surrogate, EA + pre-trained surrogate)
 \item hybrid (surrogate, EA + on-demand-trained surrogate)
@@ -24,25 +137,44 @@ Architectures
 
 Datasets
 - Fashion MNIST
-- Cifar-10?
+- Cifar-10 - bude-li čas
+
+median simple\_cnn model -> fold\_7
+median dense\_net model -> fold\_0
 
 experiments on test set - unseen data - common scenario in real world
-FGSM white-box, target model - confidence bound 0.5 (0.???)
+FGSM white-box, target model - confidence bound 0.5, 0.95 (for surrogate)
 - whole test set, targeted/non-targeted, single-image
-- multi-image??
+- multi-image - whole class
 - outcomes (metrics) ??
-    - mean/std/quantiles of step count for iterative FGSM ?
-    - mean/std/quantiles of added noise? (MSE?)
+    - median/mean/std/quantiles of step count for iterative FGSM ?
+    - median/mean/std/quantiles of added noise? (MSE?)
     - rate of success (will be close to 1)
     - time ?
     - some examples? which ones (unsuccessfull ones if any?)
+    	- show visual
 FGSM surrogate (different seed)
 - cross-validation folds cross comparison (whole/partial?)
+- 2 vs 20 (wiht 0.95 bound) - median model - median of accuracy
+- multi-image - whole class
 FGSM surrogate (teacher-student)
-- how to train - same splits as teacher? validation and test label distributions differs from train
+- 2 median modely * 10 fold * 2 architectures
+- whole dataset (resplitted randomly)
+- 1/10th of dataset (resplitted randomly)
+- multi-image - whole class
 FGSM surrogate (binary teacher-student)
-- full? app 1000 models
+- 2 median-model * 10 fold * 2 architectures * 2 big small data (just one median class)
+- (maybe if really bad - balance dataset)
 EA (black-box, pure EA)
-- what to try?
-hybrid
-- dtto
+- 10 random (really random) samples from test set
+- multi-image
+- vs median models
+hybrid - pre-trained surrogate
+- 2 median-surrogates * 2 binary/full * 10 random sample * ...
+hybrid - on-demand surrogate
+- 2 binary/full * 10 random sample * 2 * policies
+
+
+\section{Evolutionary Algorithms}
+\section{Hybrid methods}
+

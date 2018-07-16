@@ -1,77 +1,245 @@
-\chapter{Underlying Theory}
-In this chapter we will present theoretical background of various ??subjects (general word for methods, models, structures etc...)?? relevant to this ??writing??. We will cover various Artificial Intelligence paradigms with emphasis on Deep Learning for image classification and image generation, and Evolutionary Algorithms as a state space search method. Adversarial Example generation methods will be discussed as well.
-TODO Overview - AI, ML, Optimization, Search - context and structure
-
-- Artificial Intelligence (take out tasks, AI as methods)
-	: Tasks
-		| Classification
-		- Regression
-		- Sampling unknown distribution
-		- Planning
-		- Translation
-	: Methods
-		- Graph Search
-		- Random/Beam/Local Search
-		- Genetic Algorithms
-			| Evolutionary Algorithms
-
-		- SVM
-		: Machine Learning
-			- Neural Networks
-			| Deep Learning
-			- Recurrent Neural Networks
-- Adversarial Examples
-
-An~example citation: \cite{Andel07}
+\chapter{Preliminaries}
+In this chapter we will present theoretical background of various subjects relevant to this writing. We will give a compact overview of the task of image classification in computer vision with concrete examples of available datasets. We will cover various artificial intelligence paradigms with emphasis on deep learning for image classification and image generation, and evolutionary algorithms as a space search method. Adversarial example generation methods will be discussed in the following, separate chapter for their importance with respect to this work.
 
 \section{Classification Tasks in Computer Vision}
-The field of computer vision, sometimes percieved as a part of the artificial intelligence, examines the machine processing of imaging data. The basics of the field were laid down in the 1960s, the golden years of artificial intelligence, with ambitious goal to build systems with universal understanding of visual concepts. A multitude of subtasks of this ultimate goal were solved to a large extent; however the task as a whole remains to be solved at the time of writing. The computer vision is experiencing boom once again with the advent of deep learning and GPU accelerated computation.
+The field of computer vision (CV), sometimes percieved as a part of the artificial intelligence, examines the machine processing of imaging data. The basics of the field were laid down in the 1960s, the golden years of artificial intelligence, with ambitious goal to build systems with universal understanding of visual concepts. A multitude of subtasks of this ultimate goal were solved to a large extent; however the task as a whole remains to be solved at the time of writing. The computer vision is experiencing boom once again with the advent of deep learning and graphics processing unit (GPU) accelerated computation. See \cite{computer_vision} for in depth introduction to the field of computer vision.
 
-TODO early works in CV - preset convolution filters, HOG
-Early works in computer vision were mostly based on deterministic algorithms. (TODO 2D convolution, fourier transformation for denoising (band pass filters), HOG for detection, matching etc, eigenfaces)
-
-Based on previous approaches in CV, such as use of convolutional filters, in conjunction with increasing computational power and advancements in machine learning, such as reinvention of gradient backpropagation, the convolutional neural networks emerged (see \ref{sec:deep_learning}). Those models outperformed former state of the art methods i.e., SVMs with RBF kernels or SIFT with Fisher vectors, in terms of accurracy (\cite{NIPS2012_4824}) and enabled wider range of tasks to be solved. The tasks that are being solved by CNNs in CV are image classification, object detection, semantic segmentation, image generation, style transfer, image captioning, etc. We will elaborate more on image classification tasks, available datasets and respective state of the art results.
-
-TODO list of symbols and definitions
+Based on the previous approaches in CV, such as the use of convolutional filters, in conjunction with increasing computational power and advancements in machine learning, such as reinvention of gradient backpropagation, the convolutional neural networks emerged (see Section \ref{sec:deep_learning}). Those models outperformed former state of the art methods i.e., support vector machines with RBF kernels or scale-invariant feature transform with Fisher vectors, in terms of accurracy (\cite{NIPS2012_4824}) and enabled wider range of tasks to be solved. The tasks that are being solved by convolutional neural networks in CV are image classification, object detection, semantic segmentation, image generation, style transfer, image captioning, etc. We will elaborate more on image classification tasks, available datasets and respective state of the art results.
 
 \subsection{Task Definition}
-The task of image classification lies in assigning one and only one label $l$ from the set of possible output labels $L$ to each input image $I$ from the space of all possible images $\mathbf{I}$ of which we often think as a unit hypercube i.e., $[0,1]^{h \cdot w \cdot c}$ with $h$, $w$, $c$ being input images height, width and number of channels (depth) respectively. Task with input varying in shape can be transformed to the canonical classification task by adding preprocessing step which unifies shape e.g., reshaping using bilinear interpolation (TODO reference?) or conversion to common colour space (TODO reference?), or by building a multitude of solutions, each targeted at specific shape of input data.
+The task of \emph{image classification} lies in assigning one and only one label $l$ from the set of possible output labels $L$ to each input image $I$ from the space of all possible images $\mathbf{I}$ of which we often think as a unit hypercube i.e., $[0,1]^{h \cdot w \cdot c}$ with $h$, $w$, $c$ being input images height, width and number of channels (depth) respectively. Task with input varying in shape can be transformed to the canonical classification task by adding preprocessing step which unifies shape e.g., reshaping using bilinear interpolation or conversion to common colour space (see \cite{computer_vision}), or by building a multitude of solutions -- each targeted at specific shape of input data. Several derived tasks e.g., \emph{hierarchical classification} with labels forming tree-like structure, or \emph{multilabel classification} with examples belonging to multiple categories exist, but are out of scope of this writing.
 
 \subsection{MNIST like tasks}
-The whole family of datasets for benchmarking of image classification solutions has been created. For the sake of interchangeability all of them share the same input size of $28 \times 28 \times 1$ (rectangular grayscale image) and often same dataset size and structure with 60,000 training and 10,000 testing examples. (TODO note on MNIST being obsolete, emnist not much used (dataset structure incompatibility), fashion mnist not known that much, but small and enable fast experiments)
+\label{subsec:mnist_tasks}
+The whole family of datasets for benchmarking of image classification solutions has been created. For the sake of interchangeability all of them share the same input size of $28 \times 28 \times 1$ (rectangular grayscale image) and often same dataset size and structure with 60,000 training and 10,000 testing examples. Those datasets, particularly the original MNIST itself, became widely used benchmarking datasets for they are rather small in terms of the number of examples and their shape, enabling fast prototyping and experimentation.
 
 \paragraph{MNIST}
 
-The MNIST dataset comprises of handwritten digits. It is a selected subset of the Modified National Institute of Standards and Technology database. The database consists of approximately 800,000 handwritten alphanumeric characters written by 3600 writers, namely high school students and United States Census Bureau employees (TODO ref https://www.nist.gov/srd/nist-special-database-19). The subset has been chosen so that each dataset split consists of the amount of samples written by students compared to Census Bureau employees is equal. Moreover the sets of writers chosen for training samples and testing samples are disjoint. The chosen samples are normalized with following steps -- each character is reshaped to fit $20 \times 20px$ patch preserving the aspect ratio and the center of mass of this patch is aligned with the center of larger $28 \times 28px$ patch creating final sample. The classification accuracy of over 99\% was reached by \cite{Lecun98gradient-basedlearning} and their LeNet model. Due to increasing capabilities of machine learning approaches, MNIST became obsolete simple nature of MNIST task from today's point of view it is no longer a valid benchmarking dataset for performance comparison.
+The dataset comprises of handwritten digits -- a selected subset of the \cite{NIST_19} database. The database consists of approximately 800,000 handwritten alphanumeric characters written by 3600 writers, namely high school students and the United States Census Bureau employees. The subset has been chosen so that the amount of samples written by students compared to the Census Bureau employees is equal in each dataset split. Moreover the sets of writers chosen for training samples and testing samples are disjoint. The chosen samples are normalized with the following steps -- each character is reshaped to fit $20 \times 20px$ patch preserving the aspect ratio and the center of mass of this patch is aligned with the center of larger $28 \times 28px$ patch creating final sample (see fig \ref{fig:mnist}). The classification accuracy of over 99\% was reached by \cite{Lecun98gradient-basedlearning} and their \emph{LeNet} model. Due to increasing capabilities of machine learning approaches, MNIST has become obsolete and is no longer a valid benchmarking dataset for performance comparison nowadays.
 
-TODO image
+\begin{figure}
+    \centering
+    \includegraphics[height=3.5cm]{../img/mnist.pdf}
+    \caption{MNIST samples}
+    \label{fig:mnist}
+\end{figure}
 
 \paragraph{EMNIST}
 
-The Extended MNIST (EMNIST) dataset contains alphanumeric characters and consequently is seen as extension of the MNIST dataset. It comes from the same database and was created mimicking the steps used for MNIST sample preprocessing. However, the procedure differs sligtly and consequently MNIST is not a subset of EMNIST. The dataset comes in several layouts. The EMNIST Complere consists of approximately 700,000 training samples and 115,000 testing samples each classified to one of 62 classes (10 digits, 26 lower-case and 26 upper-case letters). The EMNIST Merge is a variation of the complete EMNIST with visually ambigous letter classes e.g., C, K, P, S (TODO italics?) merged, leading to 47 classes in total. The EMNIST Balanced comprises of 112,800 training and 18,800 testing samples in 47 classes (using merging), with equal sample frequency across classes. Appart from those datasets, there are EMNIST Digits, EMNIST Letters and EMNITS MNIST, dataset sharing the layout of original MNIST dataset. \cite{DBLP:journals/corr/CohenATS17}
-
-TODO numbers in math mode?
+The \emph{Extended MNIST} (EMNIST) dataset contains alphanumeric characters and it is seen as an extension of the MNIST dataset. It comes from the same database and was created by mimicking the steps used for MNIST sample preprocessing. However, the procedure differs sligtly and consequently EMNIST is not a superset of MNIST. The dataset comes in several layouts. The \emph{EMNIST Complete} consists of approximately $700,000$ training samples and $115,000$ testing samples each classified to one of 62 classes (10 digits, 26 lower-case and 26 upper-case letters). The \emph{EMNIST Merge} is a variation of the complete EMNIST with visually ambigous letter classes e.g., \emph{C, K, P, S} merged, leading to 47 classes in total. The \emph{EMNIST Balanced} comprises of $112,800$ training and $18,800$ testing samples in 47 classes (using merging), with equal sample frequency across classes. Appart from those datasets, there are \emph{EMNIST Digits}, \emph{EMNIST Letters} and \emph{EMNIST MNIST}, dataset sharing the layout of original MNIST dataset (see \cite{DBLP:journals/corr/CohenATS17}). Despite being substantialy harder task than MNIST, EMNIST is not widely used.
 
 \paragraph{Fashion MNIST}
 
-The Fashion MNIST dataset contains 
-TODO content, reference
+The \emph{Fashion MNIST} by \cite{DBLP:journals/corr/abs-1708-07747} shares the layout of MNIST dataset, having the same number of same shaped train and test examples as well as the same number of classes. The dataset comprises of grayscale thumbnails of pieces of clothes in ten classes \emph{T-shirt/top, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot} (see fig \ref{fig:fashion_mnist}). This dataset seems to be promising replacement of the original MNIST as it is defining harder and more computer vision relevant task (images of real world objects rather than manmade symbols), while preserving moderate hardware requirements and model complexity demands.
 
-% TODO train and use WRN-28-10 as a fashion mnist model
+\begin{figure}
+    \centering
+    \includegraphics[height=3.5cm]{../img/fashion_mnist.pdf}
+    \caption{Fashion MNIST samples}
+    \label{fig:fashion_mnist}
+\end{figure}
 
-\subsection{CIFAR}
-- 10/100
+\subsection{Photo datasets}
+Due to the need to classify real world imagery i.e., data with substantial amount of noise, lacking quality or having non-trivial composition such as multiple objects in the scene, varying viewing angles or conditions, or heterogenous background), the datasets of real world photographs were created. Those datasets range from collections of thousands of low resolution thumbnails in dozens of classes to millions of reasonably large pictures in hierarchical systems of classes.
 
-\subsection{ImageNet}
-- ILSVRC etc.
+\paragraph{CIFAR}
+
+The CIFAR dataset comes in two versions, namely CIFAR-10 and CIFAR-100, named after number of classes present. Both datasets share the same example shape i.e., $32 \times 32 \time 3$ (rectangular color image) and dataset layout comprising of $50,000$ training and $10,000$ testing images with balanced class occurence. CIFAR-10 consists of following classes -- \emph{airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck} (see fig \ref{fig:cifar_10}), while CIFAR-100 introduces hierarchical system of 20 superclasses e.g., \emph{fish, small mammals, tress, large carnivores} each subdivided into 5 classes e.g., \emph{fish -- aquarium fish, flatfish, ray, shark, trout} (see \cite{Krizhevsky09learningmultiple}).
+
+\begin{figure}
+    \centering
+    \includegraphics[height=3.5cm]{../img/cifar_10.pdf}
+    \caption{CIFAR 10 samples}
+    \label{fig:cifar_10}
+\end{figure}
+
+\paragraph{ImageNet}
+
+\emph{ImageNet} is large image database, providing labeled data for image classification and object detection. The images are labeled according to \emph{WordNet\textsuperscript{\textregistered}} hierarchy (see \cite{wordnet}) and the whole database aim to provide approximately 1000 images for each class. ImageNet serves as a benchmark for current state of the art image classification architectures, which became popular being winning submisions to ILSVRC challenge (challenge based on ImageNet dataset, see \cite{ILSVRC15}) -- consisting of 1.2 million images in 1000 classes. Current state of the art results achieved by \emph{NASNet} reach $3.8\%$ top-5 error and $17.3\%$ top-1 error (see \cite{nasnet}).
 
 \section{Deep Learning in Image Classification}
 \label{sec:deep_learning}
-- machine learning
-- deep learning
+The deep learning is a branch of machine learning characterized by utilization of multilayered neural networks. Due to the complexity of deep networks and solutions tailored to solve tasks with fuzzy real world data, deep learning approaches are often not backed up by strong methematical theory. However they are proving successful in solving those tasks and provide current state of the art solutions in the field of computer vision, speech recognition and synthesis, machine translation, etc. See \cite{Goodfellow-et-al-2016} for in depth introduction into the deep learning.
+
+\subsection{Machine Learning}
+\emph{Machine learning} is an artificial intelligence paradigm based on the concept of knoledge extraction from observed states or experience, followed by application of obtained knowledge to new observations.
+
+\begin{quotation}
+A computer program is said to learn from experience $E$ with respect to some class of tasks $T$ and performance measure $P$, if its performance at tasks in $T$, as measured by $P$, improves with experience $E$. \cite{Mitchell-1997}
+\end{quotation}
+
+\noindent More formally the machine learning solution, often referred to as model $M$, can be percieved as the approximation of probability distibution $P$, optionaly conditional, of random variable $\mathtt{x}$, representing the task being solved. The model is often implemented by a parametric differentiable composite function $M_\theta$ and the process of finding the solution for a given task is called \emph{training} and lies in finding the optimal set of parameters $\theta$. The process of training relies on training data i.e., set of observed states, samples of random variable $\mathtt{x}$. The optimal set of parameters is searched for using maximum likelihood estimate principle i.e., the estimate of likelihood that the probability distribution of model $P_{M_\theta}$ matches the probability distribution of random variable $\mathtt{x}$ (see \cite{ml_flach}). This process is implemented as a minimization of loss function (see Section \ref{sec:loss_fnc}), often using gradient descent algorithm (Section \ref{sec:optimizers}). Given the characteristics of the training data, machine learning tasks can be split into the following two categories -- \emph{supervised} and \emph{unsuperivsed}
+
+Training data of the \emph{supervised} task take form of $(x,y)$ i.e., input -- output or querry -- answer example pairs. The goal is to approximate the conditional probability distribution $P(y|x)$ (\emph{classification, encoding}). In case of \emph{reinforcement learning}, the dataset itself is not available, and the ground truth comes in form of full description of the dynamic environment in which the model operates.
+
+Training data of the \emph{unsupervised} task take form of singletons $x$ i.e., samples of unknown distribution. The the goal is usually to find unknown structure (\emph{clustering}), be able to \emph{generate} new samples i.e., approximate the probability distribution $P(x)$, or transform the data to some latent space with usefull properties (\emph{compression, encoding, feature extraction}).
+
+\subsection{Loss Functions}
+\label{sec:loss_fnc}
+
+Given the probability distribution $\bar{P}$ of the training data -- samples of unknown distribution $P$, and probability distribution $\bar{P}_{M_\theta}$, the \emph{loss function} quantifies the likelihood of $\bar{P}_{M_\theta}$ matching the distribution $P$, using the estimation $\bar{P}$. Frequently used loss functions are \emph{Kullback-Leibler divergence}, often referred to as cross-entropy, used for the purpose of classification tasks; \emph{mean-squared error} for regression tasks, or more advanced loss functions such as conditional random fields (CRF) loss or connectionist temporal classification (CTC) loss. Only the two former will be discussed in detail for their relevance to this writing.
+
+\paragraph{Kullback-Leibler divergence}
+For the discrete probability distributions, the \emph{KL-divergence} has the following form.
+\begin{equation} \label{eqn:kl_divergence}
+D_{KL}(\bar{P} \parallel \bar{P}_{M_\theta}) = - \sum\limits_{i} \log \bar{P}(i)\frac{\bar{P}_{M_\theta}}{\bar{P}(i)}
+\end{equation}
+It holds that KL-divergence is always non-negative and equal to zero if and only if $\bar{P} = \bar{P}_{M_\theta}$. It is worth to note that KL-divergence is not symmetric, hence it is not a distance measure.
+
+\paragraph{Mean squared error}
+The \emph{mean-squared error} (MSE) loss function is widely used in regression tasks as it meassures the sum of variance and squared bias of the model error. It takes the following form.
+\begin{equation} \label{eqn:mse}
+MSE(\bar{P}, \bar{P}_{M_\theta}) = \frac{1}{n} \sum\limits_{i=1}^{n} (\bar{P}(i) - \bar{P}_{M_\theta})^2
+\end{equation}
+It holds that MSE is always non-negative and equal to zero if and only if $\bar{P} = \bar{P}_{M_\theta}$.
+
+\subsection{Optimizers}
+\label{sec:optimizers}
+
+The optimizer controls the process of finding optimum of the loss function. Unlike classical methods of mathematical optimization working with fully defined functions (or probability distributions they generate), optimizers in machine learning work with finite set of samples of unknown distribution. As a result, finding the global optimum on the training set is not the preferable goal, as it brings the issue of overfitting -- relying on characteristics specific to the training data $\bar{P}$ which are not representative in context of the whole unknown distribution $P$. To fight overfitting, methods of regularization are often employed (see Section \ref{sec:regularization}). Due to the hardware limitations, it is often not possible for the optimizer to work with the whole training set. As a result, sampling of dataset is employed in the form of batching, and the process of training is performed in \emph{epochs} -- iterations over the whole training set. Optimizers frequently used during training of deep learning models are \emph{stochastic gradient descent} (optionaly with \emph{momentum} or \emph{Nesterov momentum}), \emph{RMSProp, AdaGrad, Adam}, etc.
+
+\paragraph{Gradient Descent}
+
+The gradient descent is a space search method. It navigates the space of the parameters of the machine learning model by iteratively taking steps in the opposite direction of the gradient of the loss function, hence minimizing it. The step size is driven by \emph{learning rate} parameter. The algorithm does not guarantee finding global optimum. When using batching, we talk about stochastic gradient descent for we have access only to the approximation of the loss function in each step.
+
+\begin{algorithm} \label{algo:sgd}
+\caption{Stochastic gradient descent [optionally with Nesterov momentum]}
+\begin{algorithmic}
+\STATE $\alpha \gets \text{learning rate}$
+\STATE $[\beta \gets \text{momentum rate}, v \gets 0]$
+\REPEAT
+\STATE Sample a minibatch of $m$ training examples $(x^{(i)}, y^{(i)})$
+\STATE $[\theta \gets \theta + \beta v]$
+\STATE $g \gets \frac{1}{m} \nabla_\theta \sum_i L(M_theta(x^{(i)}),y^{(i)})$
+\STATE $[v \gets \beta v - \alpha g]$
+\STATE $\theta \gets \theta - \alpha g$
+\UNTIL{early stopping criterion is met}
+\end{algorithmic}
+\end{algorithm}
+
+\noindent The SGD with \emph{Nesterov momentum} of rate $\beta$ (algorithm \ref{algo:sgd}) runs as follows. We set the initial momentum to zero, then each step, until we have reached the goal, we first change parameters according to the accumulated momentum, we estimate gradient of the loss function, then we update the momentum and perform step according to the estimated gradient.
+
+\paragraph{Adam}
+
+The \emph{Adam} optimizer by \cite{DBLP:journals/corr/KingmaB14} is one of optimizers derived from basic SGD. It addresses the shortcomings of the stochastic gradient descent, mainly high variance in loss function gradient estimation and inability to effectively navigate certain landscapes. Adam keeps track of the first and the second moment estimates of the loss function gradient, using exponential moving average.
+
+\begin{algorithm}  \label{algo:adam}
+\caption{Adam optimizer}
+\begin{algorithmic}
+\STATE $\alpha \gets \text{learning rate}$
+\STATE $\beta_1 \gets \text{mean decay rate}, \beta_2 \gets \text{variance decay rate}$
+\STATE $s \gets 0, r \gets 0, t \gets 0$
+\REPEAT
+\STATE $g \gets \frac{1}{m} \nabla_\theta \sum_i L(M_theta(x^{(i)}),y^{(i)})$
+\STATE $t \gets t + 1$
+\STATE $s \gets \beta_1 s + (1 - \beta_1)g$
+\STATE $r \gets \beta_2 r + (1 - \beta_2)g^2$
+\STATE $\hat{s} \gets s / (1 - \beta_1^t)$
+\STATE $\hat{r} \gets r / (1 - \beta_2^t)$
+\STATE $\theta \gets \theta - \frac{\alpha}{\sqrt{\hat{r} + \epsilon}} \hat{s}$
+\UNTIL{early stopping criterion is met}
+\end{algorithmic}
+\end{algorithm}
+
+Adam (algorithm \ref{algo:adam}) estimates the mean of gradient in the same way as SGD with momentum. Moreover, the second moment estimate provides adaptive learning rate for each parameter in $\theta$ resulting in faster convergence during training and more stable behaviour.
+
+\subsection{Regularization}
+\label{sec:regularization}
+
+As stated before, the issue of overfitting is adressed by means of regularization -- methods, that improve model generalization ability (performance on unseen data), while not neccessarily changing the performance on training data. Frequently used regularization algorithms are: \emph{early stopping, p-norm regularization, dataset augmentation, ensembling, dropout}, etc. See \ref{Goodfellow-et-al-2016} for in depth overview.
+
+The \emph{early stopping} is a policy terminating training process if model performance on validation set visibly stalls or worsens. The \emph{p-norm regularization} adds additional term to the loss function computing \emph{p-norm} of model parameters, forcing them to maintain mean close to zero and low variance; $l2$ and $l1$ norms are often used. The \emph{dataset augmentation} stands for careful application of transformations to training data providing mean of enlarging training set, and consequently improving model performance; shifting, flipping, random cropping, addition of random noise are broadly used augmentation methods, they need to be tailored to task specifically, to preserve label of augmented example. \emph{Ensembling} lies in training multiple models with different initialization, different training process or even with different architectures and employing a voting scheme for those models. This often leads to better results; however this approach comes with significant computational power demands. The \emph{dropout} masks internal featuremaps (see Section \ref{sec:layers}) randomly during the training process, forcing the layers to perform well even with noisy inputs, pushing the decision boundary between classes far from presented examples.
+
+\subsection{Layers}
+\label{sec:layers}
+Neural networks are often thought of as layered structures with layers being transormations of tensors. The deep neural networks are composed of tenths or even hundreds of those layers. Various types of layers serve for feature extraction, non-linear transformation, normalization, reshaping, etc. We will refer to tensors being passed between layers as \emph{featuremaps} or \emph{hidden representation}, slices of featuremaps along the last axis will be called \emph{channels}. See \ref{Goodfellow-er-al-2016} for more.
+
+\paragraph{Dense}
+The most basic and arguably the first layer invented is a dense layer, computing biased linear combination of inputs. Given the input vector $x_{in}$ of lenght $s_{in}$, parameters $W$ as weight matrix of shape $s_{out} \times s_{in}$ and $b$ bias vector of length $s_{out}$, the output of dense layer of size $s_{out}$ corresponds to (\ref{eqn:dense}).
+\begin{equation} \label{eqn:dense}
+L_{W, b}(x_{in}) = W x_{in} + b
+\end{equation}
+
+\paragraph{Activation functions}
+Linear combinations itself are not able to form strong enough models. \cite{Cybenko1989} proved, that added non-linearity, in their case \emph{sigmoid} (\ref{eqn:sigmoid}) function, theoretically enables construction of universal approximators. This theorem, often referred to as the universal approximation theorem, has been later proven for other non-linear functions e.g., \emph{tanh}, rectified linear unit \emph{ReLU} (\ref{eqn:relu}) and its modifications, etc. (see \cite{DBLP:journals/corr/SonodaM15}). Those are widely used in machine learning as an activation functions.
+
+\begin{equation} \label{eqn:sigmoid}
+\sigma(x) = \frac{1}{1 + e^{-x}}
+\end{equation}
+
+\begin{equation} \label{eqn:relu}
+f(x) =
+\begin{cases}
+    x, & \text{for } x > 0 \\
+    0, & \text{for } x \leq 0
+\end{cases}
+\end{equation}
+
+Activation function as a neural net layer is then straightworward elementwise application of it to the input featuremap.
+
+\paragraph{Convolution}
+A multitude of machine learning tasks process data e.g., images, natural language samples or audio, with inherent spatial properties -- mainly context locality. Convolutional layers use fixed size sliding window (\emph{kernel}) to perform discrete convolution, in order to globally extract local context. Given the input tensor $X_{in}$ of shape $(w, h, d_{in})$, the 2-dimensional convolution (\emph{Conv2D}) of output depth $d_{out}$, with kernel tensor $K$ of shape $(w_K, h_K, d_{out}, d_{in})$ and bias vector $b$ of length $d_{out}$ corresponds to (\ref{eqn:conv}).
+
+\begin{equation} \label{eqn:conv}
+\mathtt{Conv2D}(X_{in})_{x, y} =
+    \sum\limits_{i=1}^{w_K}
+    \sum\limits_{j=1}^{h_K}
+    W_{i,j} X_{in_{x + i - \left\lceil w_K / 2 \right\rceil, y + j - \left\lceil h_K / 2 \right\rceil}} + b
+\end{equation}
+
+As stated in (\ref{eqn:conv}), each output value $X_{out_{x, y}}$ is computed as a sum of the elemntwise multiplication of convolution kernel with equally shaped part of input featuremap centered around the position corresponding to $X_{out_{x, y}}$. N-dimensional convolution for different $n$ can be computed analogically. As the convolution crops the featuremap proportionally to the size of the kernel, \emph{padding} of the input tensor may be used as a preprocessing step, to maintain constant hidden representation size. To perform featuremap downsampling, we can compute convolution only in evenly spaced positions, the distance between those positions is referred to as \emph{stride}.
+
+\paragraph{Pooling}
+Pooling represents another way of downsampling. Unlike strided convolution, pooling is often parameterless and instead of performing convolution with trainable kernel, it applies given function to sliding window (channel-wise). \emph{Average} and \emph{maximum} are frequently used pooling functions.
+
+\paragraph{Normalization}
+This type of layer fights internal covariate shift, undesirable effect of model hidden representations not having stable probability distribution, by centering and scaling featuremaps to have zero mean and unit variance. Usage of normalization often results in faster and more stable training as trainable layers need not compensate for, possibly significant, changes in properties of outputs of preceding layers. Normalitation layer keeps track of first and second moment estimate often using exponential moving average. There is a multitude of normalization layers varying in a way those moments are computed. Normalization yields moderate regularization effect. According to the span of normalization, we recognize three types of it: \emph{batch, layer and group}.
+
+The \emph{batch} normalization takes place over all but last axis (channels) of featuremap. The gain of employing bacth normalization depends on training batch size, as bigger batches benefit more (see \cite{DBLP:journals/corr/IoffeS15}). The \emph{layer} normalization takes place over all but first axis (examples) of featuremap. Unlike batch normalization, the performance is not compromised when using smaller batch size. Finally, the \emph{group} noramlization takes place over multiple channels per example, forming multiple groups of features. This effectively forces the features of similar moments, ideally features with similar semantics, to share the same group (see \cite{DBLP:journals/corr/abs-1803-08494}).
+
+\subsection{Known Architectures}
+The advent of deep learning and its soaring popularity has been boosted by outstanding results achived with deep learning models, beating then state of the art methods by a large margin. Arguably \textit{AlexNet} was the first architecture to show the potential of convolutional neural networks, followed by gradually deeper architectures \textit{VGGNet, ResNet and DenseNet}. Apart from image classification, deep learning models dominated image segmentation, natural language processing tasks e.g., machine translation, speech recognition, synthesis etc. Those architectures are out of scope of this writing.
+
+\paragraph{AlexNet}
+Built from convolutions of size $11 \times 11, 5 \times 5 and 3 \times 3$, the 8-layered \textit{AlexNet} with $62.3$ million parameters scored $15.3\%$ top-5 accuracy in \textit{ILSVRC 2012} competition. It uses \textit{max} pooling for downsampling, \textit{ReLU} activation, dropout for regularization after dense layers, and SGD with momentum as an optimizer. See \cite{alexnet} for more details.
+
+\paragraph{VGGNet}
+With twice as many layers as \textit{AlexNet} and more then double parameter count of 138 millions, \textit{VGGNet} scored top-5 accuracy of $7.3\%$. It uses $3 \times 3$ convolutions exclusively, \textit{ReLU} activation, dropout for regularization after dense layers, and SGD with momentum. See \cite{DBLP:journals/corr/SimonyanZ14a} for more details.
+
+\paragraph{ResNet}
+Trying to train even deeper models, the issue of vanishing gradients arose. \cite{DBLP:journals/corr/HeZRS15} came up with residual shortcuts, connections bypassing convolutions, which enabled gradient flow. With that improvement, \textit{ResNet-152} with 152 layers scored top-5 accuracy of $3.6\%$ with $60.2$ million trainable parameters. It uses $3 \times 3$ convolutions, \textit{ReLU} activation, batch normalization between each convolution and activation, dropout after dense layers, and SGD with momentum.
+
+\paragraph{DenseNet}
+Further exploiting the performance gain of residual shortcuts usage, \cite{DBLP:journals/corr/HuangLW16a} created \textit{DenseNet} architecture. Residual connections do not bypass just one layer at a time, but connects every preceding layer to the current one, forming a so called \textit{dense block}, those blocks are interconnected with transition layers, which perform downscaling of featuremaps. Several improvements as bottlenecking and feature compression using $1 \times 1$ convolutions are introduced. It uses $3 \times 3$ convolutions, \textit{ReLU} activation, dropout and batch normalization between each convolution and activation and SGD with Nesterov momentum for training.
 
 \section{Evolutionary Algorithms as Space Search Algorithm}
-TODO Engelbrecht
+Evolutionary algorithms represent one of heuristic search algorithms and are inspired by the process of natural evolution. Following the work of Charles Darwin, we can think of evolution as of the process of gradual improvement of individuals of some population, with respect to a meassure of fitness, given by environment the population lives in. The key principle is, according to Darwin, the natural selection i.e., the survival of the fittest, which together with process of reproduction and heredity leads to propagation and spread of promising traits in succeeding generations. Formalising those principles, we obtain heuristic search algorithm by simulating natural evolution. For in depth introduction see \cite{evolution}.
 
-\section{Adversarial Examples for Deep Learning Models}
-TODO topology - black/white box, iterative/single-shot, targeted/non-targeted
+Assume a task with objective $O$ on space $S$, then:
+
+\begin{description}
+\item[population] is a subset of space to be searched
+$$P \subset S$$
+\item[individual] is an element of population
+$$i \in P$$
+\item[fitness] is a function of real valued meassure of fitness depending on individual, often function of the objective function of task to be solved
+$$F: i \mapsto \mathbb{R}, F: O(i) \mapsto \mathbb{R}$$
+\item[operator] is a function converting one or more populations to new one, often in element-wise (per individual) manner
+$$Op: P_{in_1}, P_{in_2}, \dots, P_{in_n} \mapsto P_{out}$$
+\item[epoch] is one step of evolutionary algorithm consisting of application of sequence of operators to current population, producing new population
+$$P_{t+1} = Op_n(Op_{n-1}(\dots Op_1(P_t)))$$
+\end{description}
+
+The evolutionary algorithm stops if the stopping criterion is met i.e., if some individual of current population, or the whole population itself, reach sufficient performance with respect to objective $O$.
+
+\subsection{Operators}
+The ability of evolutionary algorithms to effectively search given space lies in application of suitable operators. Those operators can be divided into three categories -- \textit{reproduction} operators e.g., \textit{cross-over} internally combine several individuals into new one, \textit{mutation} operators add random perturbations to individuals, with the idea of exploring genes not present in current population and finally \textit{selection} operators mimicking the natural selection based on fitness of individuals. Following paragraphs elaborate on several most frequently used operators.
+
+\paragraph{N-point Cross-over}
+Assuming the population of individuals being vectors of genes $i \in G_1 \times G_2 \times \dots \times G_l$, n-point crossover takes two distinct individuals $i, j$ producing offspring $u, v$ by randomly partitioning parent vectors into $n+1$ segments, and swapping odd ones. Crossover with $n + 1 = l$ is called the universal crossover and instead of partitioning the genome to segments and swapping them based on parity, it decides for each gene, whether to swap it or not randomly. For individuals being multidimensional matrices, the partitioning can be defined analogicaly, by partitioning each axis separately. Various modifications of cross-over are used based on the type of genes. For real valued ones, averaging (optionaly weighted) instead of swapping is sometimes used.
+
+\paragraph{Random Mutation}
+Assuming the population of individuals being vectors of genes $i \in G_1 \times G_2 \times \dots \times G_l$, each gene $g_k$ of individual $i$ is mutated, with probability $p_{gene}$ by drawing a sample from given distribution -- this may be uniform distribution over gene domain $G_k$ (unbiased mutation), normal distribution centered in $g_k$ with given variance in case of real valued genes, etc.
+
+\paragraph{Roulette Wheel Selection}
+Roulette wheel selection represents one of stochastic selection operators. Given population $P$ of individuals $i_1, i_2, \dots, i_n$ we can construct an imaginary roulette wheel, where each individual is represented by a slot of size proportional to its fitness normalized by aggregate fitness of the whole population. Selected population is then sampled from this roulette wheel. As any individual may be chosed multiple times, small populations suffer from high variance in roulette wheel sampling, this issue is addressed by stochastic universal sampling algorithm.
