@@ -1,5 +1,5 @@
 \chapter{Experiments}
-
+\label{sec:experiments}
 In order to empirically assess the performance of proposed solutions we have carried out a multitude of experiments on the Fashion MNIST dataset. This particular dataset was chosen for it is simple enough to enable thorough examination of various scenarios using k-fold cross-validation and measurements of results on statistically significant number of examples (often whole Fashion MNIST test set), yet more complex then MNIST and the like (\ref{subsec:mnist_tasks}). Following the results of Fashion MNIST benchmark (\cite{FASHION_BENCH}) we have chosen two high scoring model architectures of varying nature -- namely:
 
 \begin{description}
@@ -32,7 +32,7 @@ Firstly, white-box fast gradient sign method attack serving as both implementati
 
 For some experiments one \textit{SimpleNet} and one \textit{DenseNet} model is chosen, taking median models with respect to accuracy, we will refer to them as \textit{median SimpleNet/DenseNet}. In the same manner a single class is chosen, median in terms of model prediction accuracy and attack performance, for use in some experiments -- this proves to be the \textit{dress} class for Fashion MNIST dataset.
 
-Each approach is tested under combination of following conditions - either non-targeted and targeted attack to each class is carried out, while at the same time generating single or universal adversarial pattern is tested. Attack is constrained  to a maximum of 0.1 pixel-wise difference between targeted and adversarial examples, which corresponds approximately to 26 shades of gray difference in either direction.
+Each approach is tested with either non-targeted and targeted singleton attack to each class under following conditions -- attack is constrained  to a maximum of 0.1 pixel-wise difference between targeted and adversarial examples, which corresponds approximately to 26 shades of gray difference in either direction.
 
 \section{Fast Gradient Sign Method Approaches}
 Iterative FGSM is applied to each example in Fashion MNIST test set. FGSM with step size of $\frac{1}{255}$ is used, which corresponds to shift by one shade of grey in resulting adversarial example. The following experiments compare adversarial attack performance for various model architectures, target model knowledge available to adversary and character istics of the attack itself.
@@ -40,7 +40,7 @@ Iterative FGSM is applied to each example in Fashion MNIST test set. FGSM with s
 \subsection{White-Box Attack}
 The white-box iterative FGSM is run against the target models directly. Following box plots show the distribution of the number of steps (\textit{y-axis}) needed to be taken to obtain adversarial example from source label (\textit{x-axis}) to target (\textit{plot title}), those results are collected on the whole Fashion MNIST test set using cross validated target models i.e., for each class -- architecture pair, the median step count for each test set example is taken, resulting in $1000$ datapoints. Only valid datapoints i.e., those representing successfully generated adversarial examples are used to render each box. Presented heatmaps than show success rate of attack for each source -- target label pair for given architecture (\textit{plot title}). Blank cell in heatmap represents maximal possible value i.e., 1000.
 
-\paragraph{Singleton}
+\paragraph{Results}
 
 Following from presented results \ref{fig:fgsm_white_box} we can see that white box attack against single example proves to be successful in both targeted and non-targeted scenarios for each examined architecture. \textit{Simplenet} architecture proves to be slightly more resilient both in terms of success rate and iterative FGSM step count. Consulting confusion matrix of targeted models, more confused classes are easier to attack in non-targeted scenario. In targeted attack the distribution of step count approximately corresponds to the distribution of targeted class confusion (column \textit{dress} in confusion matrices).
 
@@ -56,8 +56,6 @@ Following from presented results \ref{fig:fgsm_white_box} we can see that white 
 \label{fig:fgsm_white_box}
 \end{figure}
 
-\paragraph{Universal}
-
 \subsection{Surrogate attack}
 Following experiment explores the transferability of adversarial examples using surrogate models. We compare the performance of following four scenarios.
 
@@ -67,6 +65,8 @@ Following experiment explores the transferability of adversarial examples using 
 \item[reduced] is similar to \textit{full} surrogate, except for being trained only on a fraction of training data to mimic limited ability to call targeted model (when obtaining output probability distribution) \ref{fig:reduced_surrogate}
 \item[binary] surrogate model is similar to \textit{full} surrogate in terms of data size, but is trained as a binary classifier between one chosen class and all other classes, allowing for targeted attack to selected class and non-targeted attack from it \ref{fig:binary_surrogate}
 \end{description}
+
+\paragraph{Results}
 Appart from varying approaches towards surrogate training, we compare performance of surrogates being of the same architecture versus differing architecture from the targeted model.
 From attached plots (\ref{fig:plain_surrogate}, \ref{fig:full_surrogate}, \ref{fig:reduced_surrogate}, \ref{fig:binary_surrogate}), we can see that
 
