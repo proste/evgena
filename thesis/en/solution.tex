@@ -34,7 +34,7 @@ The idea of biased mutation is preserved as well, but we change the probability 
 \end{cases}
 \end{equation}
 
-For the optimization we use two objectives -- the score of prediction of targeted class, which needs to overcome 0.5 for successful attack; and $l2$ norm of~perturbation (individual, $\eta = i$) (\ref{eqn:l2}), to quantify the intensity of it. We assume $l2$ norm being promising option for it accounts more for big pixel-wise differences. Appart from that, we suggest the use of clipping on the intensity of perturbation if it gets below certain admissible value $c_\text{bound}$ i.e., taking the $\max(c_\text{bound}, l2(i))$ as a perturbation intensity, combining the \emph{constrained} and \emph{optimized} adversarial attack paradigm.
+For the optimization we use two objectives -- the score of prediction of targeted class, which needs to overcome 0.5 for successful attack; and $l2$ norm of~perturbation (individual, $\eta = i$) (\ref{eqn:l2}), to quantify the intensity of it. We assume $l2$~norm being promising option for it accounts more for big pixel-wise differences. Appart from that, we suggest the use of clipping on the intensity of perturbation if it gets below certain admissible value $c_\text{bound}$ i.e., taking the $\max(c_\text{bound}, l2(i))$ as a perturbation intensity, combining the \emph{constrained} and \emph{optimized} adversarial attack paradigm.
 
 \begin{equation} \label{eqn:l2}
 l2(i) = \sqrt{\sum\limits_x\sum\limits_y i_{x, y}^2}
@@ -95,6 +95,6 @@ Finally, the dual clipping takes place before evaluation of objectives. Firstly,
 \end{algorithmic}
 \end{algorithm}
 
-The whole proposed strategy towards generating adversarial examples takes form of algorithm \ref{algo:evgena}. We provide our implementation as an open-sourced project under MIT license -- see \cite{git_evgena} github repository.
+The whole proposed strategy towards generating adversarial examples takes form of an algorithm \ref{algo:evgena}. After the sampling of initial population from binomial distribution, the main loop of the genetic algorithm is entered. The loop comprises of the shuffling of the parents, the two-point cross-over and the binomial mutation, followed by the clipping to prevent extreme perturbation. Next, the objectives of evolved offspring are evaluated, followed by the selection, taking in both parent generation and the evolved offspring. The fittest individuals are selected for the next iteration. We provide our implementation as an open-sourced project under MIT license -- see \cite{git_evgena} github repository.
 
 We evaluate our solution on the Fashion MNIST dataset, allowing each run of genetic algorithm to perform at most $\sim 65\,000$ evaluations of the target model $M_\theta$. We choose this amount to get comparable results with white-box and surrogate approaches trained on training set of Fashion MNIST of size $60\,000$. See section \ref{sec:blackbox_ga} for results and comparison.

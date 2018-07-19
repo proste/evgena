@@ -32,12 +32,9 @@ Firstly, the white-box fast gradient sign method attack serving as both implemen
 
 For some experiments one SimpleNet and one DenseNet model is chosen, taking median models with respect to accuracy. We will refer to them as \emph{median SimpleNet/DenseNet}. In the same manner, a single class is chosen, median in terms of model prediction accuracy and attack performance, for use in some experiments -- this proves to be the \emph{dress} class for Fashion MNIST dataset (see fig \ref{fig:training}).
 
-Each approach is tested with either non-targeted and targeted singleton attack to each class. The attacks caried out are constrained to a maximum of 0.1 pixel-wise difference between targeted and adversarial examples, which corresponds approximately to 26 shades of gray difference in either direction.
+Each approach is tested with either non-targeted and targeted singleton attack to each class. The attacks caried out are constrained to a maximum of 0.1 pixel-wise difference between targeted and adversarial examples, which corresponds approximately to 26 shades of gray difference in either direction. In case of the iterative FGSM (see section \ref{sec:fgsm}), step size of $\frac{1}{255}$ is used, which corresponds to shift by one shade of grey in the resulting adversarial example. The following experiments compare adversarial attack performance for various model architectures, target model knowledge available to adversary and characteristics of the attack itself.
 
-\section{Fast Gradient Sign Method Approaches}
-In this section of experiments, the iterative FGSM (see section \ref{sec:fgsm}) is applied to each example in Fashion MNIST test set. FGSM with step size of $\frac{1}{255}$ is used, which corresponds to shift by one shade of grey in the resulting adversarial example. The following experiments compare adversarial attack performance for various model architectures, target model knowledge available to adversary and characteristics of the attack itself.
-
-\subsection{White-Box Attack}
+\section{White-Box Attack}
 \label{sec:whitebox_fgsm}
 The white-box iterative FGSM is run against the target models directly. The following box plots (fig \ref{fig:fgsm_white_box}) show the distribution of the number of steps (\emph{y-axis}) needed to be taken to obtain adversarial example from source label (\emph{x-axis}) to target (\emph{plot title}), those results are collected on the whole Fashion MNIST test set using cross-validated target models i.e., for each class -- architecture pair, the median step count for each test set example is taken, resulting in $1000$ datapoints. Only valid datapoints i.e., those representing successfully generated adversarial examples are used to render each box. Presented heatmaps then show success rate of attack for each source -- target label pair for given architecture (\textit{plot title}). Blank cell in heatmap represents maximal possible value i.e., 1000.
 
@@ -57,7 +54,7 @@ Following from the results presented at fig \ref{fig:fgsm_white_box}, we can see
 \label{fig:fgsm_white_box}
 \end{figure}
 
-\subsection{Surrogate Attacks}
+\section{Surrogate Attacks}
 \label{sec:surrogate_fgsm}
 The following experiment explores the transferability of adversarial examples using surrogate models. We compare the performance of following four scenarios: \emph{plain, full, reduced} and \emph{binary}.
 
@@ -111,7 +108,7 @@ We notice comparable performance of plain surrogates, trained on the whole datas
 
 Intristingly enough, the binary attack does not perform as well as we expected, being significantly inferior to full surrogate attack in case of SimpleNet attack, and sligtly inferior in case of DenseNet attack. Our assumption about binary model being by far the best, as it is trained to perfectly fit the boundary between target class and all other classes, proved to be wrong. We explain this by the shift in the task being solved by binary classifier, so that the gradients no longer follow the original full classifier.
 
-\section{Black-box Attack}
+\section{Black-Box Attack}
 \label{sec:blackbox_ga}
 We examine the performance of our proposed solution based on the use of genetic algorithms (see section \ref{sec:pga}).
 
@@ -135,6 +132,9 @@ We compare the results with the best surrogate approach -- full, same architectu
 \end{figure}
 
 The black-box attack yields positive results in terms of number of targeted model evaluations (see fig \ref{fig:ga_steps}). The non-targeted attack on DenseNet architecture reports very low demands, with median complexity under $10\,000$ calls for each class. SimpleNet, again, proves to be more resilient, with median calls rising up to $30\,000$ with high variance. It is worth to note, that the distribution of steps needed to be taken to perform successful non-targeted attack against SimpleNet, loosely corresponds to the distribution of success rate of this attack. In case of targeted attack, namely attack targeted on \emph{dress} class, the difference in resiliency between model architectures is reported again. For DenseNet, targeted attack proves to be harder than non-targeted, rising the complexity up to $20\,000$ median calls for the \emph{bag} source class. SimpleNet attack complexity has increased by approximately the same offset, resulting in at most $40\,000$ median calls.
+
+\section{Result Visual Comparison}
+Figure \ref{fig:advex_vis} shows side-by-side comparison of obtained adversarial examples. From left to right (\emph{x-axis}), the following approaches are presented -- the original image, white-box FGSM attack, full surrogate same-architecture attack, and finally, the genetic algorithm based black-box attack. From top to bottom (\emph{y-axis}), the following scenarios are presented -- non-targeted SimpleNet and DenseNet attack, followed by \emph{dress} targeted SimpleNet and DenseNet attack. We can see that from the point of view of the human observer, adversarial examples do not hinder the ability to correctly deduce the source class. Moreover, in most cases, the perturbation is barely noticable.
 
 \begin{figure}
     \centering
