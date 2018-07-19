@@ -162,10 +162,10 @@ As stated before, the issue of overfitting is adressed by means of \emph{regular
 
 The \emph{early stopping} is a policy, terminating training process if model performance on validation set visibly stalls or worsens. 
 
-The \emph{p-norm regularization} adds additional term to the loss function computing \emph{p-norm} $||\cdot||_p$ of model parameters $\theta$.
+The \emph{p-norm regularization} adds additional term to the loss function computing \emph{p-norm} $\|\cdot\|_p$ of model parameters $\theta$.
 
 \begin{equation} \label{eqn:pnorm}
-||\theta||_p = \sqrt[p]{\sum_{t \in \theta} t^p}
+\|\theta\|_p = \sqrt[p]{\sum_{t \in \theta} t^p}
 \end{equation}
 
 This forces the parameters to maintain mean close to zero and low variance; $l2$ and $l1$ norms are often used.
@@ -241,7 +241,7 @@ Trying to train even deeper models, the issue of vanishing gradients arose. \cit
 \label{sec:densenet}
 Further exploiting the performance gain of residual shortcuts usage, \cite{DBLP:journals/corr/HuangLW16a} created the \emph{DenseNet} architecture. Residual connections do not bypass just one layer at a time, but connects every preceding layer to the current one, forming a so called \emph{dense block}. Those blocks are interconnected with \emph{transition layers}, which perform downscaling of featuremaps. Several improvements as bottlenecking and feature compression using $1 \times 1$ convolutions are introduced. It uses $3 \times 3$ convolutions, \emph{ReLU} activation, dropout and batch normalization between each convolution and activation, and SGD with Nesterov momentum for training.
 
-\section{Genetic Algorithms as Space Search Algorithm}
+\section[Genetic Algorithms as Space Search Algorithm]{Genetic Algorithms \\ as Space Search Algorithm}
 \label{sec:ga_theory}
 Genetic algorithms represent one of heuristic search algorithms, and they are inspired by the process of natural evolution. Following the work of \cite{darwin1859}, we can think of evolution as of the process of gradual improvement of individuals of some population, with respect to a meassure of fitness, given by environment the population lives in. The key principle is, according to Darwin, the natural selection i.e., the survival of the fittest, which, together with process of reproduction and heredity, leads to propagation and spread of promising traits in succeeding generations. Formalising those principles, we obtain heuristic search algorithm by simulating natural evolution. For in depth introduction see \cite{evolution}.
 
