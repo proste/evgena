@@ -11,7 +11,7 @@ Based on the previous approaches in CV, such as the use of convolutional filters
 \subsection{Task Definition}
 The task of \emph{image classification} lies in assigning one and only one label $l$ from the set of possible output labels $L$ to each input image $I$ from the space of all possible images $\mathbf{I}$ of which we often think as a unit hypercube i.e., $[0,1]^{h \cdot w \cdot c}$ with $h$, $w$, $c$ being input images height, width and number of channels (depth) respectively. Task with input varying in shape can be transformed to the canonical classification task by adding preprocessing step which unifies shape e.g., reshaping using bilinear interpolation or conversion to common colour space (see \cite{computer_vision}), or by building a multitude of solutions -- each targeted at specific shape of input data. Several derived tasks e.g., \emph{hierarchical classification} with labels forming tree-like structure, or \emph{multilabel classification} with examples belonging to multiple categories exist, but are out of scope of this writing.
 
-\subsection{MNIST like tasks}
+\subsection{MNIST Like Tasks}
 \label{subsec:mnist_tasks}
 The whole family of datasets for benchmarking of image classification solutions has been created. For the sake of interchangeability all of them share the same input size of $28 \times 28 \times 1$ (rectangular grayscale image) and often same dataset size and structure with $60\,000$ training and $10\,000$ testing examples. Those datasets, particularly the original MNIST itself, became widely used benchmarking datasets for they are rather small in terms of the number of examples and their shape, enabling fast prototyping and experimentation.
 
@@ -41,7 +41,7 @@ The \emph{Fashion MNIST} by \cite{DBLP:journals/corr/abs-1708-07747} shares the 
     \label{fig:fashion_mnist}
 \end{figure}
 
-\subsection{Photo datasets}
+\subsection{Photo Datasets}
 Due to the need to classify real world imagery i.e., data with substantial amount of noise, lacking quality or having non-trivial composition (such as multiple objects in the scene, varying viewing angles or conditions, or heterogenous background), the datasets of real world photographs were created. Those datasets range from collections of thousands of low resolution thumbnails in dozens of classes to millions of reasonably large pictures in hierarchical systems of classes.
 
 \paragraph{CIFAR}
@@ -72,7 +72,7 @@ A computer program is said to learn from experience $E$ with respect to some cla
 
 \noindent More formally the machine learning solution, often referred to as model $M$, can be percieved as the approximation of probability distibution $P$, optionaly conditional, of random variable $\mathtt{x}$, representing the task being solved. The model is often implemented by a parametric differentiable composite function $M_\theta$ and the process of finding the solution for a given task is called \emph{training} and lies in finding the optimal set of parameters $\theta$. The process of training relies on \emph{training data} i.e., set of observed states, samples of random variable $\mathtt{x}$. The optimal set of parameters is searched for using maximum likelihood estimate principle i.e., the estimate of likelihood that the probability distribution of model $P_{M_\theta}$ matches the probability distribution of random variable $\mathtt{x}$ (see \cite{ml_flach}). This process is implemented as a minimization of loss function (see section \ref{sec:loss_fnc}), often using gradient descent algorithm (section \ref{sec:optimizers}). Given the characteristics of the training data, machine learning tasks can be split into the following two categories -- \emph{supervised} and \emph{unsuperivsed}.
 
-Training data of the \emph{supervised} task take form of $(x,y)$ i.e., input -- output or querry -- answer example pairs. The goal is to approximate the conditional probability distribution $P(y|x)$ (\emph{classification, encoding}). In case of \emph{reinforcement learning}, the dataset itself is not available, and the ground truth comes in form of full description of the dynamic environment in which the model operates.
+Training data of the \emph{supervised} task take form of $(x,y)$ i.e., input -- output or querry -- answer example pairs. The goal is to approximate the conditional probability distribution $P\left(y|x\right)$ (\emph{classification, encoding}). In case of \emph{reinforcement learning}, the dataset itself is not available, and the ground truth comes in form of full description of the dynamic environment in which the model operates.
 
 Training data of the \emph{unsupervised} task take form of singletons $x$ i.e., samples of unknown distribution. The goal is usually to find unknown structure (\emph{clustering}), be able to \emph{generate} new samples i.e., approximate the probability distribution $P(x)$, or transform the data to some latent space with usefull properties (\emph{compression, encoding, feature extraction}).
 
@@ -84,14 +84,14 @@ Given the probability distribution $\bar{P}$ of the training data -- samples of 
 \paragraph{Kullback-Leibler divergence}
 For the discrete probability distributions, the \emph{KL-divergence} has the following form.
 \begin{equation} \label{eqn:kl_divergence}
-D_{KL}(\bar{P} \parallel \bar{P}_{M_\theta}) = - \sum\limits_{i} \log \bar{P}(i)\frac{\bar{P}_{M_\theta}}{\bar{P}(i)}
+D_{KL}\left(\bar{P} \parallel \bar{P}_{M_\theta}\right) = - \sum\limits_{i} \log \bar{P}(i)\frac{\bar{P}_{M_\theta}}{\bar{P}(i)}
 \end{equation}
 It holds that KL-divergence is always non-negative and equal to zero if and only if $\bar{P} = \bar{P}_{M_\theta}$. It is worth to note that KL-divergence is not symmetric, hence it is not a distance measure.
 
 \paragraph{Mean squared error}
 The \emph{mean-squared error} (MSE) loss function is widely used in regression tasks as it meassures the sum of variance and squared bias of the model error. It takes the following form.
 \begin{equation} \label{eqn:mse}
-\text{MSE}(\bar{P}, \bar{P}_{M_\theta}) = \frac{1}{n} \sum\limits_{i=1}^{n} (\bar{P}(i) - \bar{P}_{M_\theta})^2
+\text{MSE}\left(\bar{P}, \bar{P}_{M_\theta}\right) = \frac{1}{n} \sum\limits_{i=1}^{n} \left(\bar{P}(i) - \bar{P}_{M_\theta}\right)^2
 \end{equation}
 It holds that MSE is always non-negative and equal to zero if and only if $\bar{P} = \bar{P}_{M_\theta}$.
 
@@ -105,16 +105,17 @@ The optimizer controls the process of finding optimum of the loss function. Unli
 The gradient descent is a space search method. It navigates the space of the parameters of the machine learning model by iteratively taking steps in the opposite direction of the gradient of the loss function, hence minimizing it. The step size is driven by \emph{learning rate} parameter. The algorithm does not guarantee finding global optimum. When using batching, we talk about stochastic gradient descent for we have access only to the approximation of the loss function in each step.
 
 \begin{algorithm}
+\caption{Stochastic gradient gescent [optionally with Nesterov momentum]}
 \label{algo:sgd}
-\caption{Stochastic gradient descent [optionally with Nesterov momentum]}
 \begin{algorithmic}
 \STATE $\alpha \gets \text{learning rate}$
-\STATE $[\beta \gets \text{momentum rate}, v \gets 0]$
+\STATE $\left[\beta \gets \text{momentum rate}, v \gets 0\right]$
+\STATE
 \REPEAT
-\STATE Sample a minibatch of $m$ training examples $(x^{(i)}, y^{(i)})$
-\STATE $[\theta \gets \theta + \beta v]$
-\STATE $g \gets \frac{1}{m} \nabla_\theta \sum_i L(M_\theta(x^{(i)}),y^{(i)})$
-\STATE $[v \gets \beta v - \alpha g]$
+\STATE Sample a minibatch of $m$ training examples $\left(x^{(i)}, y^{(i)}\right)$
+\STATE $\left[\theta \gets \theta + \beta v\right]$
+\STATE $g \gets \frac{1}{m} \nabla_\theta \sum_i L\left(M_\theta\left(x^{(i)}\right),y^{(i)}\right)$
+\STATE $\left[v \gets \beta v - \alpha g\right]$
 \STATE $\theta \gets \theta - \alpha g$
 \UNTIL{early stopping criterion is met}
 \end{algorithmic}
@@ -128,19 +129,21 @@ The gradient descent is a space search method. It navigates the space of the par
 The \emph{Adam} optimizer by \cite{DBLP:journals/corr/KingmaB14} is one of the optimizers derived from basic SGD. It addresses the shortcomings of the stochastic gradient descent, mainly high variance in loss function gradient estimation and inability to effectively navigate certain landscapes. Adam keeps track of the first and the second moment estimates of the loss function gradient, using exponential moving average.
 
 \begin{algorithm}
-\label{algo:adam}
 \caption{Adam optimizer}
+\label{algo:adam}
 \begin{algorithmic}
 \STATE $\alpha \gets \text{learning rate}$
 \STATE $\beta_1 \gets \text{mean decay rate}, \beta_2 \gets \text{variance decay rate}$
+\STATE
 \STATE $s \gets 0, r \gets 0, t \gets 0$
 \REPEAT
-\STATE $g \gets \frac{1}{m} \nabla_\theta \sum_i L(M_\theta(x^{(i)}),y^{(i)})$
+\STATE Sample a minibatch of $m$ training examples $\left(x^{(i)}, y^{(i)}\right)$
+\STATE $g \gets \frac{1}{m} \nabla_\theta \sum_i L\left(M_\theta\left(x^{(i)}\right),y^{(i)}\right)$
 \STATE $t \gets t + 1$
-\STATE $s \gets \beta_1 s + (1 - \beta_1)g$
-\STATE $r \gets \beta_2 r + (1 - \beta_2)g^2$
-\STATE $\hat{s} \gets s / (1 - \beta_1^t)$
-\STATE $\hat{r} \gets r / (1 - \beta_2^t)$
+\STATE $s \gets \beta_1 s + \left(1 - \beta_1\right)g$
+\STATE $r \gets \beta_2 r + \left(1 - \beta_2\right)g^2$
+\STATE $\hat{s} \gets s / \left(1 - \beta_1^t\right)$
+\STATE $\hat{r} \gets r / \left(1 - \beta_2^t\right)$
 \STATE $\theta \gets \theta - \frac{\alpha}{\sqrt{\hat{r} + \epsilon}} \hat{s}$
 \UNTIL{early stopping criterion is met}
 \end{algorithmic}
@@ -162,7 +165,7 @@ Neural networks are often thought of as layered structures with layers being tra
 \paragraph{Dense}
 The most basic and arguably the first layer invented is a dense layer, computing biased linear combination of inputs. Given the input vector $x_{in}$ of lenght $s_{in}$, parameters $W$ as weight matrix of shape $s_{out} \times s_{in}$ and $b$ bias vector of length $s_{out}$, the output of dense layer of size $s_{out}$ corresponds to (\ref{eqn:dense}).
 \begin{equation} \label{eqn:dense}
-L_{W, b}(x_{in}) = W x_{in} + b
+L_{W, b}\left(x_{in}\right) = W x_{in} + b
 \end{equation}
 
 \paragraph{Activation functions}
@@ -220,18 +223,18 @@ Trying to train even deeper models, the issue of vanishing gradients arose. \cit
 \label{sec:densenet}
 Further exploiting the performance gain of residual shortcuts usage, \cite{DBLP:journals/corr/HuangLW16a} created \emph{DenseNet} architecture. Residual connections do not bypass just one layer at a time, but connects every preceding layer to the current one, forming a so called \emph{dense block}. Those blocks are interconnected with \emph{transition layers}, which perform downscaling of featuremaps. Several improvements as bottlenecking and feature compression using $1 \times 1$ convolutions are introduced. It uses $3 \times 3$ convolutions, \emph{ReLU} activation, dropout and batch normalization between each convolution and activation, and SGD with Nesterov momentum for training.
 
-\section{Evolutionary Algorithms as Space Search Algorithm}
-\label{sec:ea_theory}
-Evolutionary algorithms represent one of heuristic search algorithms and are inspired by the process of natural evolution. Following the work of \cite{darwin1859}, we can think of evolution as of the process of gradual improvement of individuals of some population, with respect to a meassure of fitness, given by environment the population lives in. The key principle is, according to Darwin, the natural selection i.e., the survival of the fittest, which together with process of reproduction and heredity leads to propagation and spread of promising traits in succeeding generations. Formalising those principles, we obtain heuristic search algorithm by simulating natural evolution. For in depth introduction see \cite{evolution}.
+\section{Genetic Algorithms as Space Search Algorithm}
+\label{sec:ga_theory}
+Genetic algorithms represent one of heuristic search algorithms and are inspired by the process of natural evolution. Following the work of \cite{darwin1859}, we can think of evolution as of the process of gradual improvement of individuals of some population, with respect to a meassure of fitness, given by environment the population lives in. The key principle is, according to Darwin, the natural selection i.e., the survival of the fittest, which together with process of reproduction and heredity leads to propagation and spread of promising traits in succeeding generations. Formalising those principles, we obtain heuristic search algorithm by simulating natural evolution. For in depth introduction see \cite{evolution}.
 
-Assume a task with objective $O$ on space $S$. Then population $P$ is a subset of space to be searched ($P \subset S$), with individual $i$ being an element of population ($i \in P$), hence element of search space $S$ i.e., possible solution. Fitness function $F: i \mapsto \mathbb{R}$ is a real valued meassure of fitness depending on individual, often function of the objective function $O$ of the task to be solved i.e., $F: O(i) \mapsto \mathbb{R}$. As an operator $\text{Op}: P_{in_1}, P_{in_2}, \dots, P_{in_n} \mapsto P_{out}$ we define a function converting one or more populations to a new one, often in element-wise (per individual) manner. \emph{Epoch} is then a one step of evolutionary algorithm consisting of application of the sequence of operators to current population $P_t$, producing new population $P_{t+1} = \text{Op}_n(\text{Op}_{n-1}(\dots \text{Op}_1(P_t)))$.
+Assume a task with objective $O$ on space $S$. Then population $P$ is a subset of space to be searched ($P \subset S$), with individual $i$ being an element of population ($i \in P$), hence element of search space $S$ i.e., possible solution. Fitness function $F: i \mapsto \mathbb{R}$ is a real valued meassure of fitness depending on individual, often function of the objective function $O$ of the task to be solved i.e., $F: O(i) \mapsto \mathbb{R}$. As an operator $\text{Op}: P_{in_1}, P_{in_2}, \dots, P_{in_n} \mapsto P_{out}$ we define a function converting one or more populations to a new one, often in element-wise (per individual) manner. \emph{Epoch} is then a one step of genetic algorithm consisting of application of the sequence of operators to current population $P_t$, producing new population $P_{t+1} = \text{Op}_n\left(\text{Op}_{n-1}\left(\dots \text{Op}_1(P_t)\right)\right)$.
 
-The evolutionary algorithm stops if the stopping criterion is met i.e., if some individual of current population, or the whole population itself, reach sufficient performance with respect to objective $O$.
+The run of the genetic algorithm begins with \emph{initialization} i.e., creation of the initial popoluation. Frequent approaches towards initialization are sampling of chosen probability distribution or usage of predefined set of promising individuals -- gene pool, often obtained by some task specific heuristics. After the initialization, the main loop is entered. The genetic algorithm stops if the stopping criterion is met i.e., if some individual of current population, or the whole population itself, reach sufficient performance with respect to objective $O$.
 
-It is worth to note that population and consequently individuals are often not sampled from space $S$ directly but rather conveniently \emph{encoded} in a format suitable for evolutionary algorithm, the representation of individual often takes form of an array of features, often referred to as \emph{genome} with individual features called \emph{traits} or \emph{genes}.
+It is worth to note that population and consequently individuals are often not sampled from space $S$ directly but rather conveniently \emph{encoded} in a format suitable for genetic algorithm, the representation of individual often takes form of an array of features, often referred to as \emph{genome} with individual features called \emph{traits} or \emph{genes}.
 
 \subsection{Operators}
-The ability of evolutionary algorithms to effectively search given space lies in application of suitable operators. Those operators can be divided into three categories -- \emph{reproduction} operators e.g., \emph{cross-over} which combines several individuals into new one; \emph{mutation} operators, which add random perturbations to individuals, with the idea of exploring genes not present in current population; and finally \emph{selection} operators mimicking the natural selection based on fitness of individuals.
+The ability of genetic algorithms to effectively search given space lies in application of suitable operators. Those operators can be divided into three categories -- \emph{reproduction} operators e.g., \emph{cross-over} which combines several individuals into new one; \emph{mutation} operators, which add random perturbations to individuals, with the idea of exploring genes not present in current population; and finally \emph{selection} operators mimicking the natural selection based on fitness of individuals.
 
 Assuming the population $P$ of individuals being vectors of genes $i \in G_1 \times G_2 \times \dots \times G_l$ of length $l$, with $G_k$ being the \emph{domain} of gene $g_k$. The following paragraphs elaborate on several most frequently used operators.
 

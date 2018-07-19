@@ -28,14 +28,14 @@ The confusion matrices of median models are very similar for both architectures.
 
 In the following sections we are going to examine following approaches towards generating adversarial examples for image classifiers and we will present their performance on the Fashion MNIST dataset.
 
-Firstly, white-box fast gradient sign method attack serving as both implementation sanity check and baseline is carried out (see section \ref{sec:whitebox_fgsm}). Next the transferability of adversarial examples is examined using surrogate attacks (see section \ref{sec:surrogate_fgsm}). Those approaches include transfering adversarial examples between models trained on the same dataset -- the most naive approach, training surrogate model on outputs of the target model and finally training focused surrogate models as a binary classifiers for specific classification category in one-vs-all manner. For each approach based on use of surrogate models, the transferability of adversarial examples between models of the same architecture as well as models of differing architectures is assessed. Appart from pure gradient methods, evolutionary algorithms are employed as a space search method, generating adversarial examples for the target model (see section \ref{sec:blackbox_ea}).
+Firstly, white-box fast gradient sign method attack serving as both implementation sanity check and baseline is carried out (see section \ref{sec:whitebox_fgsm}). Next the transferability of adversarial examples is examined using surrogate attacks (see section \ref{sec:surrogate_fgsm}). Those approaches include transfering adversarial examples between models trained on the same dataset -- the most naive approach, training surrogate model on outputs of the target model and finally training focused surrogate models as a binary classifiers for specific classification category in one-vs-all manner. For each approach based on use of surrogate models, the transferability of adversarial examples between models of the same architecture as well as models of differing architectures is assessed. Appart from pure gradient methods, genetic algorithms are employed as a space search method, generating adversarial examples for the target model (see section \ref{sec:blackbox_ga}).
 
 For some experiments one \emph{SimpleNet} and one \emph{DenseNet} model is chosen, taking median models with respect to accuracy. We will refer to them as \emph{median SimpleNet/DenseNet}. In the same manner a single class is chosen, median in terms of model prediction accuracy and attack performance, for use in some experiments -- this proves to be the \emph{dress} class for Fashion MNIST dataset (see fig \ref{fig:training}).
 
 Each approach is tested with either non-targeted and targeted singleton attack to each class. The attacks caried out are constrained to a maximum of 0.1 pixel-wise difference between targeted and adversarial examples, which corresponds approximately to 26 shades of gray difference in either direction.
 
 \section{Fast Gradient Sign Method Approaches}
-Iterative FGSM (see section \ref{sec:fgsm} is applied to each example in Fashion MNIST test set. FGSM with step size of $\frac{1}{255}$ is used, which corresponds to shift by one shade of grey in resulting adversarial example. The following experiments compare adversarial attack performance for various model architectures, target model knowledge available to adversary and characteristics of the attack itself.
+In this section of experiments, the iterative FGSM (see section \ref{sec:fgsm}) is applied to each example in Fashion MNIST test set. FGSM with step size of $\frac{1}{255}$ is used, which corresponds to shift by one shade of grey in resulting adversarial example. The following experiments compare adversarial attack performance for various model architectures, target model knowledge available to adversary and characteristics of the attack itself.
 
 \subsection{White-Box Attack}
 \label{sec:whitebox_fgsm}
@@ -57,7 +57,7 @@ Following from presented results \ref{fig:fgsm_white_box} we can see that white 
 \label{fig:fgsm_white_box}
 \end{figure}
 
-\subsection{Surrogate attack}
+\subsection{Surrogate Attacks}
 \label{sec:surrogate_fgsm}
 Following experiment explores the transferability of adversarial examples using surrogate models. We compare the performance of following four scenarios: \emph{plain, full, reduced} and \emph{binary}.
 
@@ -65,20 +65,6 @@ Following experiment explores the transferability of adversarial examples using 
 
 \paragraph{Results}
 Appart from varying approaches towards surrogate training, we compare performance of surrogates being of the same architecture versus differing architecture from the targeted model. From attached plots for plain surrogate (fig \ref{fig:plain_surrogate}), full surrogate (fig \ref{fig:full_surrogate}), reduced surrogate (fig \ref{fig:reduced_surrogate}) and binary surrogate (fig \ref{fig:binary_surrogate}), we derive following observations.
-
-As expected, surrogate adversarial attack approaches perform inferior to direct white-box methods. In detail, full surrogate is the best surrogate approach, followed by plain and binary surrogate, with reduced surrogate having the worst performance of all examined scenarios.
-
-We observe, that it is easier to generate adversarial examples among visually similar classes -- types of shoes (\emph{sneaker, sandal, ankle boot}), clothes covering the chest (\emph{dress, coat, pullover, t-shirt/top}), while class unlike any other (\emph{trouser}) is resilient to adversarial attack. From this point of view, \textit{bag} category might seem as an outlier, being very easily attacked, while not being type of footwear or clothing -- we think this might be again caused by feature reuse, as from the point of visual similarity, it is close to both of those groups.
-
-SimpleNet is more resilient to attacks than DenseNet (left column of heatmaps scoring lower values than right column). We assume that this might be caused by extensive feature reuse in case of DenseNet (claimed by \cite{DBLP:journals/corr/HuangLW16a}) i.e., one channel of featuremap having significant role in prediction of multiple classes. Consequently, tampering with this shared, class independent feature, influence the prediction of multiple classes, shifting the models response. Simplenet on the other hand may have more class dependent features, forcing the adversary to both counter the strong prediction of the source class, while at the same time strenghten the prediction of targeted class.
-
-The interesting phenomenon is the asymmetry in performance of cross architecture attacks, with DenseNet target model attacked by SimpleNet surrogate being far more successful than its counterpart. This again may be caused by feature reuse. We think of it intuitively as of a surjective-only mapping between model features, with multiple SimpleNet features being mapped to one DenseNet feature. As a result, DenseNet is unable to attack specific SimpleNet features. Same architecture attack, on the other hand proves to be successful in both cases, outperforming cross architecture attacks in all cases.
-
-We notice comparable performance of plain surrogates, trained on the whole dataset, unaware of target model distribution; and reduced surrogates, trained on reduced dataset, aware of target model; both inferior to full surrogates, trained on the whole dataset, aware of target model. This confirms that both increasing amount of data and increasing knowledge about targeted model improve succes rate of surrogate adversarial attack.
-
-Intristingly enough, the binary attack does not perform as well as we expected, being significantly inferior to full surrogate attack in case of SimpleNet attack, and sligtly inferior in case of DenseNet attack. Our assumption about binary model being by far the best, as it is trained to perfectly fit the boundary between target class and all other classes, proved to be wrong. We explain this by the shift in the task being solved by binary classifier, so that the gradients no longer follow the original full classifier.
-
-TODO reference figures in conclusions??
 
 \begin{figure}
     \centering
@@ -103,7 +89,6 @@ TODO reference figures in conclusions??
 
 \begin{figure}
     \centering
-    %\includegraphics[width=\textwidth]{../img/experiments_fgsm_binary_surrogate__single__cm.pdf}
     \begin{tabular}{@{}c@{}}
         \includegraphics[width=.24\textwidth]{../img/experiments_fgsm_binary_surrogate_simplenet_single_simplenet_cm.pdf}
         \includegraphics[width=.24\textwidth]{../img/experiments_fgsm_binary_surrogate_simplenet_single_densenet_cm.pdf}
@@ -114,20 +99,30 @@ TODO reference figures in conclusions??
     \label{fig:binary_surrogate}
 \end{figure}
 
-TODO show step count of full same architecture attack on dress compared to ?? binary ?? 
+As expected, surrogate adversarial attack approaches perform inferior to direct white-box methods (see fig \ref{fig:fgsm_white_box}). In detail, full surrogate is the best surrogate approach (fig \ref{fig:full_surrogate}), followed by plain and binary surrogate (fig \ref{fig:plain_surrogate} and \ref{fig:binary_surrogate}), with reduced surrogate having the worst performance of all examined scenarios (see fig \ref{fig:reduced_surrogate}).
 
-\subsection{Pure evolutionary algorithms}
-\label{sec:blackbox_ea}
-We examine the performance of our proposed solution based on use of evolutionary algorithms (see section \ref{sec:pea}). We select median class targeted (\emph{dress}) and non-targeted singleton adversarial attack as test cases.
+We observe, that it is easier to generate adversarial examples among visually similar classes -- types of shoes (\emph{sneaker, sandal, ankle boot}), clothes covering the chest (\emph{dress, coat, pullover, t-shirt/top}), while class unlike any other (\emph{trouser}) is resilient to adversarial attack. From this point of view, \textit{bag} category might seem as an outlier, being very easily attacked, while not being type of footwear or clothing -- we think this might be again caused by feature reuse, as from the point of visual similarity, it is close to both of those groups.
+
+SimpleNet is more resilient to attacks than DenseNet (left column of heatmaps scoring lower values than right column). We assume that this might be caused by~extensive feature reuse in case of DenseNet (claimed by \cite{DBLP:journals/corr/HuangLW16a}) i.e., one channel of featuremap having significant role in prediction of multiple classes. Consequently, tampering with this shared, class independent feature, influence the prediction of multiple classes, shifting the models response. Simplenet on the other hand may have more class dependent features, forcing the adversary to both counter the evidence for prediction of the source class, while at the same time strenghten the prediction of targeted class.
+
+The interesting phenomenon is the asymmetry in performance of cross architecture attacks, with DenseNet target model attacked by SimpleNet surrogate being far more successful than its counterpart. This again may be caused by feature reuse. We think of it intuitively as of a surjective-only mapping between model features, with multiple SimpleNet features being mapped to one DenseNet feature. As a result, DenseNet is unable to attack specific SimpleNet features. Same architecture attack, on the other hand proves to be successful in both cases, outperforming cross architecture attacks in all cases.
+
+We notice comparable performance of plain surrogates, trained on the whole dataset, unaware of target model distribution; and reduced surrogates, trained on reduced dataset, aware of target model; both inferior to full surrogates, trained on the whole dataset, aware of target model. This confirms that both increasing amount of data and increasing knowledge about targeted model improve succes rate of surrogate adversarial attack.
+
+Intristingly enough, the binary attack does not perform as well as we expected, being significantly inferior to full surrogate attack in case of SimpleNet attack, and sligtly inferior in case of DenseNet attack. Our assumption about binary model being by far the best, as it is trained to perfectly fit the boundary between target class and all other classes, proved to be wrong. We explain this by the shift in the task being solved by binary classifier, so that the gradients no longer follow the original full classifier.
+
+TODO reference figures in conclusions??
+
+\subsection{Black-box attack}
+\label{sec:blackbox_ga}
+We examine the performance of our proposed solution based on use of genetic algorithms (see section \ref{sec:pga}).
 
 The hyperparameters of the approach are set as follows: the cross-over takes place with probability $p_{xover} = 0.8$, the biased mutation uses binomial distribution with $n = 26, p = 0.5$ shifted to zero and scaled by factor $\frac{1}{255}$, with $p_{mut} = 0.3$ the probability of individual being mutated and $p_{gene} = 0.15$ the probability of gene mutation. The clipping bound of the perturbation $l2$ norm is set to $0.0005$ -- $0.95$ quantile of $l2$ norm of perturbations in FGSM attacks, for the sake of result comparability. Maximal adversarial example pixel-wise difference is constrained to $0.1$ to match the constraints of gradient based method experiments.
 
 \paragraph{Results}
-Regarding the justified increase in computational cost of running black-box attack, particularly evolutionary algorithm based. We test only two scenarios - median class targeted and non-targeted attack.
+Regarding the justified increase in computational cost of running black-box attack, particularly genetic algorithm based, we test only two scenarios - median class targeted and non-targeted attack.
 
-We compare the results with the best surrogate approach -- full, same architecture, fast gradient sign method surrogate. As showed in fig \ref{fig:ea_surrogate}, the performance of non-targeted attack is perfect using both approaches. On the other hand targeted attack exhibits significant assymetry regarding the different architectures. SimpleNet black-box attack performance proves to be inferior to that of full surrogate attack on the same architecture while following similar distribution of source -- target pairs success rate. On the contrary, black-box attack targeted on DenseNet architecture yield perfect results, superior to those of surrogate attack. The observed assymetry follows the trend of SimpleNet being more resilient to adversarial attacks, while clearly showing the unexpected deviation in success rate. We assume this to be caused by TODO.
-
-TODO step counts?? maybe some graph
+We compare the results with the best surrogate approach -- full, same architecture, fast gradient sign method surrogate. As showed in fig \ref{fig:ga_surrogate}, the performance of non-targeted attack is perfect using both approaches. On the other hand targeted attack exhibits significant assymetry regarding the different architectures. The observed assymetry follows the trend of SimpleNet being more resilient to adversarial attacks. SimpleNet black-box attack performance proves to be inferior to that of full surrogate attack on the same architecture while following similar distribution of source -- target pairs success rate. On the contrary, black-box attack targeted on DenseNet architecture yield perfect results, superior to those of surrogate attack, clearly showing the unexpected deviation in success rate. We assume this to be caused by genetic algorithm exploration capabilities, which the fast gradient sign method does not offer, sufficient to attack weaker DenseNet model.
 
 \begin{figure}
     \centering
@@ -137,7 +132,25 @@ TODO step counts?? maybe some graph
         \includegraphics[width=.24\textwidth]{../img/ea_densenet_cm.pdf}
         \includegraphics[width=.24\textwidth]{../img/dress_experiments_fgsm_full_surrogate_densenet_single_densenet_cm.pdf}  \\
     \end{tabular}
-    \caption{Evolutionary algorithms (compared to full surrogate)}
-    \label{fig:ea_surrogate}
+    \caption{Black-box attack success rate (compared to full surrogate)}
+    \label{fig:ga_surrogate}
 \end{figure}
-TODO some images of adversarial examples - side by side comparison
+
+The black-box attack yields positive results in terms of number of targeted model evaluations (see fig \ref{fig:ga_steps}). The non-targeted attack on DenseNet architecture reports very low demands, with median complexity under $10\,000$ calls for each class. SimpleNet, again, proves to be more resilient, with median calls rising up to $30\,000$ with high variance. It is worth to note, that the distribution of steps needed to be taken to perform successful non-targeted attack against SimpleNet, loosely corresponds to the distribution of success rate of this attack. In case of targeted attack, namely attack targeted on \emph{dress} class, the difference in resiliency between model architectures is reported again. For DenseNet, targeted attack proves to be harder than non-targeted, rising the complexity up to $20\,000$ median calls for source class \emph{bag}. SimpleNet complexity rised by approximately the same offset, resulting in at most $40\,000$ median calls.
+
+\begin{figure}
+    \centering
+    \begin{tabular}{@{}c@{}}
+        \includegraphics[width=.48\textwidth]{../img/ga_non_targeted.pdf}
+        \includegraphics[width=.48\textwidth]{../img/ga_targeted_3.pdf}  \\
+    \end{tabular}
+    \caption{Number of black-box model evaluations (compared to full surrogate)}
+    \label{fig:ga_steps}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../img/advex_vis.pdf}
+    \caption{Comparison of successful adversarial examples}
+    \label{fig:advex_vis}
+\end{figure}
