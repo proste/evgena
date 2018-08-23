@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .model import Model, TfModel
-from .data_transformations import augment_images
-from genetals.core import ObjectiveFncBase, OperatorBase, GeneticAlgorithm, Population
+from .data_transformations import augment_images, images_to_BHWC
+from genetals.core import ObjectiveFncBase, OperatorBase, GeneticAlgorithm, Population, InitializerBase
 
 
 class ImageSampler(ABC):
@@ -86,7 +86,7 @@ class DecayImageSampler(ImageSampler):
                 self._source_pos += replace_count
 
             self._sample_index.source_i[replace_mask] = replacements
-            self._sample_index.chance = 1
+            self._sample_index.chance[replace_mask] = 1
 
 
 class Images2LabelObjectiveFnc(ObjectiveFncBase):
@@ -121,6 +121,31 @@ class Images2LabelObjectiveFnc(ObjectiveFncBase):
         # create array by merging columns
         return np.stack((avg_logits, avg_norms), axis=-1)
 
+class BinomialInit(InitializerBase):
+    def __init__(self,
+        individual_shape: Sequence[int], step_size: float,
+        max_steps: np.ndarray = 1
+    ):
+        super(BinomialInit, self).__init__()
+
+        self._individual_shape = individual_shape
+        self._step_size = step_size
+        self._scales = max_steps
+
+    def __call__(self, population_size: int, *args, **kwargs) -> np.ndarray:
+        scales = kwargs.get('max_steps', self._scales)
+
+        tile_count = (population_size + (len(scales) - 1)) // len(scales)
+
+        genes = []
+        for scale in scales:
+            genes.append(
+                np.random.binomial(2 * scale, 0.5, (tile_count,) + tuple(self._individual_shape)) - scale
+            )
+
+        genes = np.concatenate(genes)[:population_size]
+        return self._step_size * genes
+
 
 class ClipOperator(OperatorBase):
     def __init__(self, input_op: OperatorBase, v_min: float, v_max: float):
@@ -133,6 +158,39 @@ class ClipOperator(OperatorBase):
         clipped_genes = np.clip(input_pop.genes, a_min=self._v_min, a_max=self._v_max)
 
         return Population(clipped_genes, ga)
+
+
+class BinomialMutation(OperatorBase):
+    def __init__(
+        self, original_op: OperatorBase, individual_mut_ratio: float,
+        gene_mut_ratio: float, step_size: float, max_steps: int, mean_steps: int = 0
+    ):
+        super(BinomialMutation, self).__init__(original_op)
+
+        self._individual_mut_ratio = individual_mut_ratio
+        self._gene_mut_ratio = gene_mut_ratio
+        self._step_size = step_size
+        self._scale = max_steps
+        self._mean = mean_steps
+
+    def _operation(self, ga: GeneticAlgorithm, original: Population):
+        mutant_count = int(original.size * self._individual_mut_ratio)
+        individual_size = np.prod(original.genes.shape[1:])
+        gene_count = int(individual_size * self._gene_mut_ratio)
+
+        mutant_index = np.random.choice(original.size, size=mutant_count, replace=False)
+
+        gene_index = np.empty(shape=(mutant_count, gene_count), dtype=np.int)
+        for row in range(mutant_count):
+            gene_index[row] = np.random.choice(individual_size, size=gene_count, replace=False)
+
+        flat_index = (gene_index + np.expand_dims(mutant_index * individual_size, -1)).ravel()
+        shift = self._step_size * (np.random.binomial(2 * self._scale, 0.5, size=flat_index.size) - self._scale + self._mean)
+
+        mutated_genes = original.genes.copy()
+        mutated_genes.ravel()[flat_index] += shift
+
+        return Population(mutated_genes, ga)
 
 
 # TODO annealed ClipOperator
@@ -159,16 +217,16 @@ class FGSMMutation(OperatorBase):
 
     def _operation(self, ga: GeneticAlgorithm, original_pop: Population) -> Population:
         noise = images_to_BHWC(original_pop.genes)
-        images = self._image_sampler = image_sampler
+        images = self._image_sampler.sample
 
-        for s_i in self._steps:
+        for s_i in range(self._steps):
             # augment images
             augmented_images = np.clip(augment_images(noise, images), 0, 1)
             augmented_images_batch_shaped = augmented_images.reshape(-1, *augmented_images.shape[2:])
 
-            labels = [target_label] * len(augmented_images_batch_shaped)
+            labels = [self._target_label] * len(augmented_images_batch_shaped)
 
-            curr_grads_batch_shaped = model.gradients(augmented_images_batch_shaped, labels)
+            curr_grads_batch_shaped = self._model.gradients(augmented_images_batch_shaped, np.asarray(labels))
 
             curr_noise = self._grad_sign * self._step_size * np.sign(
                 curr_grads_batch_shaped.reshape(*augmented_images.shape[:-1], -1).mean(axis=1)
@@ -176,7 +234,7 @@ class FGSMMutation(OperatorBase):
 
             noise = np.clip(
                 noise + curr_noise,
-                - max_diff, max_diff
+                - self._max_diff, self._max_diff
             )
 
         return Population(noise.reshape(original_pop.genes.shape), ga)
