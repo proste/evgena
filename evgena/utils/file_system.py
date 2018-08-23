@@ -3,7 +3,7 @@ from typing import Callable, IO
 
 def copyfileobj(
     fsrc: IO, fdst: IO, length: int = 65536,
-    callback[[int], None]: Callable = None
+    callback: Callable[[int], None] = None
 ) -> None:
     """Copies data between file-like objects
 
