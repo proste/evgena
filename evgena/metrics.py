@@ -70,6 +70,7 @@ def mse(images_x, images_y):
     return np.mean(np.square(images_x - images_y), axis=tuple(range(1, images_x.ndim)))
 
 
+# TODO implement cm_to_img functions, in MD output make label column bold
 class ConfusionMatrix:
     @property
     def accuracy(self):

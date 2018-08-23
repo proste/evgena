@@ -52,7 +52,7 @@ class Dataset:
         
             label_sorted_ordering = ordering[np.argsort(labels)]
             
-            rows = len(np.unique(labels))
+            rows = len(np.unique(labels))  # TODO fix (does not work for binary datasets and more)
             if (size % rows) == 0:
                 ordering = np.ravel(label_sorted_ordering.reshape(rows, -1), order='F')
             else:
