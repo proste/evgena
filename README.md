@@ -1,4 +1,4 @@
-:construction: project is in early stage of development, come back in July for hopefully functional version :construction:
+:construction: project is in an undefined stage of development, come back in July (of your favorite future year) for hopefully functional version :construction:
 
 # Evolutionary GENerated Adversarial examples #
 
