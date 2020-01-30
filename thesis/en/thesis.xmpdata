@@ -1,7 +1,0 @@
-% Metadata to be stored in PDF, see documentation of the pdfx package for more details.
-
-\Author{Štěpán Procházka}
-\Title{Adversarial examples generation for deep neural networks}
-\Keywords{machine learning\sep adversarial examples\sep evolutionary algorithms\sep deep learning}
-\Subject{Machine learning models exhibit vulnerability to adversarial examples i.e., artificially created inputs that become misinterpreted. The goal of this work is to explore black-box adversarial attacks on deep networks performing image classification. The role of surrogate machine learning models for adversarial attacks is studied, and a special version of a genetic algorithm for generating adversarial examples is proposed. The efficiency of attacks is validated by a multitude of experiments with the Fashion MNIST data set. The experimental results verify the usability of our approach with surprisingly good performance in several cases, such as non-targeted attack on residual networks.}
-\Publisher{Charles University}
